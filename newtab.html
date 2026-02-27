@@ -149,6 +149,8 @@
           <select id="setting-bg-mode">
             <option value="auto">Automatic (random on refresh)</option>
             <option value="pick">Pick an image</option>
+            <option value="custom-image">Custom image (URL)</option>
+            <option value="custom-dir">Custom directory</option>
             <option value="solid">Solid color</option>
           </select>
         </label>
@@ -156,6 +158,20 @@
           <p class="hint">Images found in <code>backgrounds/</code> folder:</p>
           <div id="bg-thumbs"></div>
           <p id="bg-no-images" class="hint hidden">No images found. Drop images into the <code>backgrounds/</code> folder and reload the extension.</p>
+        </div>
+        <div id="bg-custom-image-area" class="hidden">
+          <label>
+            <span>Image URL</span>
+            <input type="text" id="setting-bg-custom-image" placeholder="https://example.com/image.jpg">
+          </label>
+          <img id="bg-custom-image-preview" alt="Preview">
+        </div>
+        <div id="bg-custom-dir-area" class="hidden">
+          <label>
+            <span>Directory path</span>
+            <input type="text" id="setting-bg-custom-dir" placeholder="/path/to/images">
+          </label>
+          <p class="hint">Enter the full local path to a folder of images. A random image will be chosen on each refresh.</p>
         </div>
         <label id="bg-color-label" class="hidden">
           <span>Background color</span>

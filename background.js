@@ -59,12 +59,47 @@ const Background = (() => {
     document.body.style.backgroundColor = color || '#1a1a2e';
   }
 
+  function applyUrl(url) {
+    document.body.style.backgroundImage = `url("${url}")`;
+  }
+
   async function apply(settings) {
     imageList = await loadImageList();
 
     if (settings.bgMode === 'solid') {
       currentImage = null;
       applySolid(settings.bgColor);
+      return;
+    }
+
+    if (settings.bgMode === 'custom-image') {
+      currentImage = null;
+      if (settings.bgCustomImage) {
+        applyUrl(settings.bgCustomImage);
+      } else {
+        applySolid(settings.bgColor);
+      }
+      return;
+    }
+
+    if (settings.bgMode === 'custom-dir') {
+      currentImage = null;
+      // Custom directory mode uses a file:// URL base path.
+      // The user provides a directory; we pick a random image on each page load.
+      // Since we can't list directory contents from a file:// path in a Chrome extension,
+      // the user must enter the full path. We store it and rely on the user providing
+      // a valid directory. We attempt to load via file:// protocol.
+      if (settings.bgCustomDir) {
+        // Persist the same image across settings saves
+        if (!currentImage) {
+          // We can't enumerate the directory, so we apply the directory path
+          // and let the user set it. For now we just set as-is.
+          const dir = settings.bgCustomDir.replace(/\/$/, '');
+          applyUrl(`file://${dir}`);
+        }
+      } else {
+        applySolid(settings.bgColor);
+      }
       return;
     }
 

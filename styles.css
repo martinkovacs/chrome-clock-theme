@@ -26,7 +26,7 @@ body {
 }
 
 body.settings-open {
-  padding-right: 440px;
+  padding-right: 458px;
 }
 
 #bg-overlay {
@@ -75,7 +75,7 @@ body.settings-open {
 }
 
 body.settings-open #mini-clocks-container {
-  right: calc(28px + 440px);
+  right: calc(28px + 458px);
 }
 
 .mini-clock {
@@ -206,7 +206,7 @@ body.settings-open #mini-clocks-container {
 }
 
 body.settings-open #settings-btn {
-  right: calc(28px + 440px);
+  right: calc(28px + 458px);
 }
 
 #settings-btn:hover {
@@ -236,7 +236,7 @@ body.settings-open #settings-btn {
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
   padding: 28px 32px;
-  width: 440px;
+  width: 458px;
   height: 100%;
   overflow-y: auto;
   color: #e0e0e0;
@@ -514,4 +514,25 @@ fieldset input[type="checkbox"] {
 
 #bg-no-images.hidden {
   display: none;
+}
+
+#bg-custom-image-area.hidden {
+  display: none;
+}
+
+#bg-custom-dir-area.hidden {
+  display: none;
+}
+
+#bg-custom-image-preview {
+  margin-top: 8px;
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: none;
+}
+
+#bg-custom-image-preview.visible {
+  display: block;
 }

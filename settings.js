@@ -17,6 +17,8 @@ const Settings = (() => {
     tempUnit: 'celsius',
     bgMode: 'auto',
     bgImage: '',
+    bgCustomImage: '',
+    bgCustomDir: '',
     bgColor: '#1a1a2e',
   };
 
@@ -76,6 +78,9 @@ const Settings = (() => {
     document.getElementById('setting-date-format').value = settings.dateFormat;
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
+    document.getElementById('setting-bg-custom-image').value = settings.bgCustomImage || '';
+    document.getElementById('setting-bg-custom-dir').value = settings.bgCustomDir || '';
+    updateCustomImagePreview(settings.bgCustomImage || '');
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
     // Weather locations
@@ -108,6 +113,8 @@ const Settings = (() => {
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
+      bgCustomImage: document.getElementById('setting-bg-custom-image').value.trim(),
+      bgCustomDir: document.getElementById('setting-bg-custom-dir').value.trim(),
       bgColor: document.getElementById('setting-bg-color').value,
     };
   }
@@ -117,10 +124,21 @@ const Settings = (() => {
   }
 
   function toggleBgSubPanels(mode) {
-    const pickerArea = document.getElementById('bg-picker-area');
-    const colorLabel = document.getElementById('bg-color-label');
-    pickerArea.classList.toggle('hidden', mode !== 'pick');
-    colorLabel.classList.toggle('hidden', mode !== 'solid');
+    document.getElementById('bg-picker-area').classList.toggle('hidden', mode !== 'pick');
+    document.getElementById('bg-custom-image-area').classList.toggle('hidden', mode !== 'custom-image');
+    document.getElementById('bg-custom-dir-area').classList.toggle('hidden', mode !== 'custom-dir');
+    document.getElementById('bg-color-label').classList.toggle('hidden', mode !== 'solid');
+  }
+
+  function updateCustomImagePreview(url) {
+    const preview = document.getElementById('bg-custom-image-preview');
+    if (url) {
+      preview.src = url;
+      preview.classList.add('visible');
+      preview.onerror = () => { preview.classList.remove('visible'); };
+    } else {
+      preview.classList.remove('visible');
+    }
   }
 
   function renderThumbs(images, current) {
@@ -310,6 +328,11 @@ const Settings = (() => {
     // Background mode toggle
     document.getElementById('setting-bg-mode').addEventListener('change', (e) => {
       toggleBgSubPanels(e.target.value);
+    });
+
+    // Custom image URL preview
+    document.getElementById('setting-bg-custom-image').addEventListener('input', (e) => {
+      updateCustomImagePreview(e.target.value.trim());
     });
 
     // Weather city search
