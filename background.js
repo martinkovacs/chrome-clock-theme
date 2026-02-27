@@ -1,25 +1,51 @@
 /**
  * Background manager – handles background image loading and selection.
  *
- * Because Chrome extensions can't dynamically list directory contents,
- * a manifest file (backgrounds/images.json) is used. Users should update
- * this file with the filenames of images they place in backgrounds/.
- *
- * images.json format: ["photo1.jpg", "photo2.png", "wallpaper.webp"]
+ * Uses chrome.runtime.getPackageDirectoryEntry to auto-discover all
+ * image files in the backgrounds/ folder. No manifest file needed —
+ * just drop images in and they'll appear automatically.
  */
 const Background = (() => {
+  const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
   let imageList = [];
 
-  async function loadImageList() {
-    try {
-      const url = chrome.runtime.getURL('backgrounds/images.json');
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const list = await res.json();
-      return Array.isArray(list) ? list : [];
-    } catch {
-      return [];
-    }
+  function isImage(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    return IMAGE_EXTENSIONS.includes(ext);
+  }
+
+  function loadImageList() {
+    return new Promise((resolve) => {
+      if (!chrome.runtime.getPackageDirectoryEntry) {
+        resolve([]);
+        return;
+      }
+
+      chrome.runtime.getPackageDirectoryEntry((root) => {
+        root.getDirectory('backgrounds', {}, (dir) => {
+          const reader = dir.createReader();
+          const files = [];
+
+          // readEntries may return results in batches, so read until empty
+          function readBatch() {
+            reader.readEntries((entries) => {
+              if (entries.length === 0) {
+                resolve(files.sort());
+                return;
+              }
+              entries.forEach((entry) => {
+                if (entry.isFile && isImage(entry.name)) {
+                  files.push(entry.name);
+                }
+              });
+              readBatch();
+            }, () => resolve(files.sort()));
+          }
+
+          readBatch();
+        }, () => resolve([]));
+      });
+    });
   }
 
   function applyImage(filename) {
