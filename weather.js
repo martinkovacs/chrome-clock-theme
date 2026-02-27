@@ -1,9 +1,9 @@
 /**
- * Weather module – fetches hourly forecast from Open-Meteo and renders
- * 3 weather cards (now + next 2 hours). City lookup via Nominatim.
+ * Weather module – fetches hourly forecast from Open-Meteo for up to 3
+ * locations. Each location shows current weather (large) plus the next
+ * 3 hours. City lookup via Nominatim.
  */
 const Weather = (() => {
-  // WMO weather code → emoji + description
   const WMO_CODES = {
     0: ['&#9728;&#65039;', 'Clear sky'],
     1: ['&#127780;&#65039;', 'Mainly clear'],
@@ -49,10 +49,6 @@ const Weather = (() => {
     return res.json();
   }
 
-  /**
-   * Search for cities using OpenStreetMap Nominatim.
-   * Returns an array of { display_name, lat, lon }.
-   */
   async function searchCity(query) {
     if (!query || query.length < 2) return [];
     const url =
@@ -73,8 +69,6 @@ const Weather = (() => {
 
   function findCurrentHourIndex(times) {
     const now = new Date();
-    // times are ISO strings like "2026-02-27T13:00"
-    // Find the latest time that is <= now
     let idx = 0;
     for (let i = 0; i < times.length; i++) {
       if (new Date(times[i]) <= now) {
@@ -86,66 +80,107 @@ const Weather = (() => {
     return idx;
   }
 
-  function formatHourLabel(isoTime, offset) {
-    if (offset === 0) return 'Now';
+  function formatHour(isoTime) {
     const d = new Date(isoTime);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
-  function render(data, settings) {
+  /**
+   * Build the DOM for one location block.
+   */
+  function buildLocationBlock(loc, data, unitLabel) {
     const hourly = data.hourly;
     const startIdx = findCurrentHourIndex(hourly.time);
-    const unitLabel = settings.tempUnit === 'fahrenheit' ? 'F' : 'C';
 
-    for (let i = 0; i < 3; i++) {
+    const block = document.createElement('div');
+    block.className = 'weather-location';
+
+    // City label
+    const cityEl = document.createElement('div');
+    cityEl.className = 'weather-city';
+    cityEl.textContent = loc.city;
+    block.appendChild(cityEl);
+
+    // Current weather (large)
+    const currentTemp = Math.round(hourly.temperature_2m[startIdx]);
+    const currentCode = hourly.weathercode[startIdx];
+    const [currentIcon, currentDesc] = decodeWeather(currentCode);
+
+    const currentEl = document.createElement('div');
+    currentEl.className = 'weather-current';
+    currentEl.innerHTML =
+      `<div class="weather-current-icon">${currentIcon}</div>` +
+      `<div class="weather-current-info">` +
+      `<div class="weather-current-temp">${currentTemp}\u00B0${unitLabel}</div>` +
+      `<div class="weather-current-desc">${currentDesc}</div>` +
+      `</div>`;
+    block.appendChild(currentEl);
+
+    // Next 3 hours forecast
+    const forecastEl = document.createElement('div');
+    forecastEl.className = 'weather-forecast';
+
+    for (let i = 1; i <= 3; i++) {
       const hi = startIdx + i;
       if (hi >= hourly.time.length) break;
 
-      const card = document.getElementById(`weather-${i}`);
-      if (!card) continue;
-
       const temp = Math.round(hourly.temperature_2m[hi]);
       const code = hourly.weathercode[hi];
-      const [iconHtml, desc] = decodeWeather(code);
-      const timeLabel = formatHourLabel(hourly.time[hi], i);
+      const [icon] = decodeWeather(code);
 
-      card.querySelector('.weather-time').textContent = timeLabel;
-      card.querySelector('.weather-icon').innerHTML = iconHtml;
-      card.querySelector('.weather-temp').textContent = `${temp}\u00B0${unitLabel}`;
-      card.querySelector('.weather-desc').textContent = desc;
+      const hourEl = document.createElement('div');
+      hourEl.className = 'weather-hour';
+      hourEl.innerHTML =
+        `<div class="weather-hour-time">${formatHour(hourly.time[hi])}</div>` +
+        `<div class="weather-hour-icon">${icon}</div>` +
+        `<div class="weather-hour-temp">${temp}\u00B0${unitLabel}</div>`;
+      forecastEl.appendChild(hourEl);
     }
 
-    const locationEl = document.getElementById('weather-location-label');
-    if (locationEl) {
-      locationEl.textContent = settings.city || `${settings.lat}, ${settings.lon}`;
-    }
+    block.appendChild(forecastEl);
+    return block;
   }
 
-  function renderEmpty(message) {
-    for (let i = 0; i < 3; i++) {
-      const card = document.getElementById(`weather-${i}`);
-      if (!card) continue;
-      card.querySelector('.weather-time').textContent = '';
-      card.querySelector('.weather-icon').innerHTML = '';
-      card.querySelector('.weather-temp').textContent = '';
-      card.querySelector('.weather-desc').textContent = i === 0 ? message : '';
-    }
-    const locationEl = document.getElementById('weather-location-label');
-    if (locationEl) locationEl.textContent = '';
-  }
-
+  /**
+   * Update all weather widgets.
+   * @param {object} settings – full settings object with `locations` array and `tempUnit`.
+   */
   async function update(settings) {
-    if (!settings.lat || !settings.lon) {
-      renderEmpty('Set location in settings');
+    const container = document.getElementById('weather-container');
+    container.innerHTML = '';
+
+    const locations = settings.locations || [];
+    if (locations.length === 0) {
+      const msg = document.createElement('div');
+      msg.className = 'weather-location weather-empty';
+      msg.innerHTML = '<div class="weather-current-desc">Set location in settings</div>';
+      container.appendChild(msg);
       return;
     }
-    try {
-      const data = await fetchHourly(settings.lat, settings.lon, settings.tempUnit);
-      render(data, settings);
-    } catch (err) {
-      console.error('Weather fetch failed:', err);
-      renderEmpty('Unable to load');
-    }
+
+    const unitLabel = settings.tempUnit === 'fahrenheit' ? 'F' : 'C';
+
+    // Fetch all locations in parallel
+    const fetches = locations.map((loc) =>
+      fetchHourly(loc.lat, loc.lon, settings.tempUnit)
+        .then((data) => ({ loc, data, error: false }))
+        .catch(() => ({ loc, data: null, error: true }))
+    );
+
+    const results = await Promise.all(fetches);
+
+    results.forEach(({ loc, data, error }) => {
+      if (error || !data) {
+        const block = document.createElement('div');
+        block.className = 'weather-location';
+        block.innerHTML =
+          `<div class="weather-city">${loc.city}</div>` +
+          `<div class="weather-current"><div class="weather-current-desc">Unable to load</div></div>`;
+        container.appendChild(block);
+        return;
+      }
+      container.appendChild(buildLocationBlock(loc, data, unitLabel));
+    });
   }
 
   return { update, searchCity };

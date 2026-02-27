@@ -10,9 +10,7 @@ const Settings = (() => {
     clockSize: 96,
     clockColor: '#ffffff',
     dateFormat: 'long',
-    city: '',
-    lat: null,
-    lon: null,
+    locations: [],     // [{ city, lat, lon }, ...] up to 3
     tempUnit: 'celsius',
     bgMode: 'auto',
     bgImage: '',
@@ -21,7 +19,20 @@ const Settings = (() => {
 
   async function load() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(DEFAULTS, (data) => resolve({ ...DEFAULTS, ...data }));
+      chrome.storage.local.get(DEFAULTS, (data) => {
+        const settings = { ...DEFAULTS, ...data };
+
+        // Migrate old single-location format → locations array
+        if ((!settings.locations || settings.locations.length === 0) && settings.lat && settings.lon) {
+          settings.locations = [{ city: settings.city || 'Unknown', lat: settings.lat, lon: settings.lon }];
+        }
+        // Clean up legacy keys
+        delete settings.city;
+        delete settings.lat;
+        delete settings.lon;
+
+        resolve(settings);
+      });
     });
   }
 
@@ -33,38 +44,30 @@ const Settings = (() => {
 
   /* ── UI bindings ───────────────────────────────── */
 
-  // Pending location from city search (lat/lon stored here until Save)
-  let pendingLat = null;
-  let pendingLon = null;
-  let pendingCity = '';
+  let pendingLocations = [];
 
   function populateUI(settings) {
     document.getElementById('setting-clock-format').value = settings.clockFormat;
     document.getElementById('setting-show-seconds').checked = settings.showSeconds;
     document.getElementById('setting-clock-font').value = settings.clockFont;
+
+    // Clock size – sync slider and number input
     document.getElementById('setting-clock-size').value = settings.clockSize;
-    document.getElementById('clock-size-val').textContent = settings.clockSize + 'px';
+    document.getElementById('setting-clock-size-num').value = settings.clockSize;
+
     document.getElementById('setting-clock-color').value = settings.clockColor;
     document.getElementById('setting-date-format').value = settings.dateFormat;
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
+    // Locations
+    pendingLocations = (settings.locations || []).map((l) => ({ ...l }));
+    renderLocationChips();
+
     // City search
     document.getElementById('setting-city-search').value = '';
     document.getElementById('city-results').classList.add('hidden');
-    pendingLat = settings.lat;
-    pendingLon = settings.lon;
-    pendingCity = settings.city || '';
-
-    const selectedEl = document.getElementById('city-selected');
-    const nameEl = document.getElementById('city-selected-name');
-    if (pendingCity) {
-      nameEl.textContent = pendingCity;
-      selectedEl.classList.remove('hidden');
-    } else {
-      selectedEl.classList.add('hidden');
-    }
 
     toggleBgSubPanels(settings.bgMode);
   }
@@ -74,12 +77,10 @@ const Settings = (() => {
       clockFormat: document.getElementById('setting-clock-format').value,
       showSeconds: document.getElementById('setting-show-seconds').checked,
       clockFont: document.getElementById('setting-clock-font').value,
-      clockSize: parseInt(document.getElementById('setting-clock-size').value, 10),
+      clockSize: parseInt(document.getElementById('setting-clock-size-num').value, 10) || 96,
       clockColor: document.getElementById('setting-clock-color').value,
       dateFormat: document.getElementById('setting-date-format').value,
-      city: pendingCity,
-      lat: pendingLat,
-      lon: pendingLon,
+      locations: pendingLocations,
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
@@ -124,6 +125,40 @@ const Settings = (() => {
     });
   }
 
+  /* ── Location management ──────────────────────── */
+
+  function renderLocationChips() {
+    const list = document.getElementById('locations-list');
+    list.innerHTML = '';
+
+    pendingLocations.forEach((loc, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'location-chip';
+
+      const name = document.createElement('span');
+      name.className = 'location-chip-name';
+      name.textContent = loc.city;
+
+      const btn = document.createElement('button');
+      btn.className = 'location-chip-remove';
+      btn.type = 'button';
+      btn.innerHTML = '&times;';
+      btn.title = 'Remove';
+      btn.addEventListener('click', () => {
+        pendingLocations.splice(idx, 1);
+        renderLocationChips();
+      });
+
+      chip.appendChild(name);
+      chip.appendChild(btn);
+      list.appendChild(chip);
+    });
+
+    // Hide search if already at 3 locations
+    const addArea = document.getElementById('add-location-area');
+    addArea.classList.toggle('hidden', pendingLocations.length >= 3);
+  }
+
   /* ── City search ──────────────────────────────── */
 
   let searchTimer = null;
@@ -139,7 +174,6 @@ const Settings = (() => {
         resultsEl.classList.add('hidden');
         return;
       }
-      // Debounce 400ms
       searchTimer = setTimeout(async () => {
         const results = await Weather.searchCity(query);
         resultsEl.innerHTML = '';
@@ -152,13 +186,15 @@ const Settings = (() => {
           div.className = 'city-result-item';
           div.textContent = r.display_name;
           div.addEventListener('click', () => {
-            pendingLat = r.lat;
-            pendingLon = r.lon;
-            pendingCity = r.name || r.display_name.split(',')[0];
+            if (pendingLocations.length >= 3) return;
+            pendingLocations.push({
+              city: r.name || r.display_name.split(',')[0],
+              lat: r.lat,
+              lon: r.lon,
+            });
             input.value = '';
             resultsEl.classList.add('hidden');
-            document.getElementById('city-selected-name').textContent = pendingCity;
-            document.getElementById('city-selected').classList.remove('hidden');
+            renderLocationChips();
           });
           resultsEl.appendChild(div);
         });
@@ -166,10 +202,31 @@ const Settings = (() => {
       }, 400);
     });
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#city-search-wrap')) {
         resultsEl.classList.add('hidden');
+      }
+    });
+  }
+
+  /* ── Clock size sync ──────────────────────────── */
+
+  function setupClockSizeSync() {
+    const slider = document.getElementById('setting-clock-size');
+    const numInput = document.getElementById('setting-clock-size-num');
+
+    slider.addEventListener('input', () => {
+      numInput.value = slider.value;
+    });
+
+    numInput.addEventListener('input', () => {
+      const val = parseInt(numInput.value, 10);
+      if (!isNaN(val)) {
+        // Clamp slider to its own range, but let number input go beyond
+        slider.value = Math.max(
+          parseInt(slider.min),
+          Math.min(parseInt(slider.max), val)
+        );
       }
     });
   }
@@ -188,17 +245,14 @@ const Settings = (() => {
       document.getElementById('settings-panel').classList.add('hidden');
     });
 
-    // Close on backdrop click
     document.getElementById('settings-panel').addEventListener('click', (e) => {
       if (e.target === document.getElementById('settings-panel')) {
         document.getElementById('settings-panel').classList.add('hidden');
       }
     });
 
-    // Range label
-    document.getElementById('setting-clock-size').addEventListener('input', (e) => {
-      document.getElementById('clock-size-val').textContent = e.target.value + 'px';
-    });
+    // Clock size sync
+    setupClockSizeSync();
 
     // Background mode toggle
     document.getElementById('setting-bg-mode').addEventListener('change', (e) => {

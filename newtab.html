@@ -10,28 +10,8 @@
   <!-- Background overlay for readability -->
   <div id="bg-overlay"></div>
 
-  <!-- Weather widgets – top left, 3 hourly cards -->
-  <div id="weather-container">
-    <div class="weather-card" id="weather-0">
-      <div class="weather-time">Now</div>
-      <div class="weather-icon"></div>
-      <div class="weather-temp">--°</div>
-      <div class="weather-desc">Loading...</div>
-    </div>
-    <div class="weather-card" id="weather-1">
-      <div class="weather-time"></div>
-      <div class="weather-icon"></div>
-      <div class="weather-temp"></div>
-      <div class="weather-desc"></div>
-    </div>
-    <div class="weather-card" id="weather-2">
-      <div class="weather-time"></div>
-      <div class="weather-icon"></div>
-      <div class="weather-temp"></div>
-      <div class="weather-desc"></div>
-    </div>
-    <div id="weather-location-label"></div>
-  </div>
+  <!-- Weather widgets – top left, dynamically populated -->
+  <div id="weather-container"></div>
 
   <!-- Clock – center -->
   <div id="clock-container">
@@ -79,8 +59,9 @@
         </label>
         <label>
           <span>Clock size</span>
-          <input type="range" id="setting-clock-size" min="48" max="180" value="96">
-          <span id="clock-size-val">96px</span>
+          <input type="range" id="setting-clock-size" min="48" max="300" value="96">
+          <input type="number" id="setting-clock-size-num" min="12" max="600" value="96">
+          <span class="input-suffix">px</span>
         </label>
         <label>
           <span>Clock color</span>
@@ -99,15 +80,15 @@
       <!-- Weather / location settings -->
       <fieldset>
         <legend>Weather &amp; Location</legend>
-        <label>
-          <span>City</span>
-          <div id="city-search-wrap">
-            <input type="text" id="setting-city-search" placeholder="Search for a city...">
-            <div id="city-results" class="hidden"></div>
-          </div>
-        </label>
-        <div id="city-selected" class="hint hidden">
-          Selected: <span id="city-selected-name"></span>
+        <div id="locations-list"></div>
+        <div id="add-location-area">
+          <label>
+            <span>Add city</span>
+            <div id="city-search-wrap">
+              <input type="text" id="setting-city-search" placeholder="Search for a city...">
+              <div id="city-results" class="hidden"></div>
+            </div>
+          </label>
         </div>
         <label>
           <span>Temperature unit</span>
