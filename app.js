@@ -1,0 +1,28 @@
+/**
+ * App entry point – wires everything together on page load.
+ */
+(async () => {
+  const settings = await Settings.load();
+
+  // Apply background
+  await Background.apply(settings);
+
+  // Start clock
+  Clock.start(settings);
+
+  // Fetch weather
+  Weather.update(settings);
+
+  // Refresh weather every 15 minutes
+  setInterval(() => {
+    Settings.load().then((s) => Weather.update(s));
+  }, 15 * 60 * 1000);
+
+  // Bind settings panel
+  Settings.bindEvents((newSettings) => {
+    // Re-apply everything with updated settings
+    Clock.start(newSettings);
+    Weather.update(newSettings);
+    Background.apply(newSettings);
+  });
+})();

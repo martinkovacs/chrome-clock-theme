@@ -1,0 +1,334 @@
+/* ── Reset & Base ──────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #fff;
+}
+
+body {
+  background-color: #1a1a2e;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+#bg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Clock ────────────────────────────────────────── */
+#clock-container {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  user-select: none;
+}
+
+#clock {
+  font-size: 96px;
+  font-weight: 300;
+  letter-spacing: 4px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;
+}
+
+#date {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 400;
+  opacity: 0.85;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Weather widget ───────────────────────────────── */
+#weather-widget {
+  position: fixed;
+  top: 24px;
+  left: 28px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 14px 20px;
+  user-select: none;
+  transition: opacity 0.3s;
+}
+
+#weather-icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+#weather-temp {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+#weather-desc {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+#weather-location-label {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* ── Settings button ──────────────────────────────── */
+#settings-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.2s, transform 0.2s;
+}
+
+#settings-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: rotate(30deg);
+}
+
+/* ── Settings panel ───────────────────────────────── */
+#settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 0.25s;
+}
+
+#settings-panel.hidden {
+  display: none;
+}
+
+#settings-inner {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px 36px;
+  width: 460px;
+  max-height: 85vh;
+  overflow-y: auto;
+  color: #e0e0e0;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+#settings-inner::-webkit-scrollbar {
+  width: 6px;
+}
+
+#settings-inner::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.settings-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+#settings-close {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+#settings-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Fieldsets */
+fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+legend {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  padding: 0 8px;
+}
+
+fieldset label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  gap: 12px;
+  font-size: 14px;
+}
+
+fieldset label span:first-child {
+  flex-shrink: 0;
+}
+
+fieldset select,
+fieldset input[type="text"],
+fieldset input[type="number"] {
+  background: #2a2a3e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 180px;
+}
+
+fieldset input[type="color"] {
+  width: 40px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
+fieldset input[type="range"] {
+  flex: 1;
+  min-width: 100px;
+}
+
+fieldset input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+#btn-geolocate,
+#btn-save-settings {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#btn-geolocate {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  margin-top: 8px;
+}
+
+#btn-geolocate:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#btn-save-settings {
+  background: #5865f2;
+  color: #fff;
+  margin-top: 4px;
+}
+
+#btn-save-settings:hover {
+  background: #4752c4;
+}
+
+/* Background picker */
+#bg-picker-area {
+  margin-top: 12px;
+}
+
+#bg-picker-area.hidden {
+  display: none;
+}
+
+#bg-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#bg-thumbs .thumb {
+  width: 80px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+#bg-thumbs .thumb:hover {
+  transform: scale(1.05);
+}
+
+#bg-thumbs .thumb.selected {
+  border-color: #5865f2;
+}
+
+.hint {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+#bg-color-label.hidden {
+  display: none;
+}
+
+#bg-no-images.hidden {
+  display: none;
+}

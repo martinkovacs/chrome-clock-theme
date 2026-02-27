@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Custom Clock & Weather New Tab",
+  "version": "1.0.0",
+  "description": "A customizable new tab page with clock, date, and weather widget.",
+  "permissions": ["storage"],
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["backgrounds/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
