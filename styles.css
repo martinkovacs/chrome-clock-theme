@@ -164,34 +164,32 @@ body {
   transform: rotate(30deg);
 }
 
-/* ── Settings panel ───────────────────────────────── */
+/* ── Settings panel (side drawer) ─────────────────── */
 #settings-panel {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition: opacity 0.25s;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  pointer-events: none;
 }
 
-#settings-panel.hidden {
-  display: none;
+#settings-panel.open {
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 #settings-inner {
   background: #1e1e2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 32px 36px;
-  width: 460px;
-  max-height: 85vh;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
+  padding: 28px;
+  width: 380px;
+  height: 100%;
   overflow-y: auto;
   color: #e0e0e0;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
 
 #settings-inner::-webkit-scrollbar {
@@ -304,25 +302,6 @@ fieldset input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
-}
-
-#btn-save-settings {
-  display: block;
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.2s;
-  background: #5865f2;
-  color: #fff;
-  margin-top: 4px;
-}
-
-#btn-save-settings:hover {
-  background: #4752c4;
 }
 
 /* ── City search ─────────────────────────────────── */

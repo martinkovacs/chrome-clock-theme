@@ -1,6 +1,6 @@
 /**
  * Settings module – loads/saves settings from chrome.storage.local and
- * manages the settings panel UI.
+ * manages the settings side-panel UI with auto-save.
  */
 const Settings = (() => {
   const DEFAULTS = {
@@ -27,7 +27,6 @@ const Settings = (() => {
         if ((!settings.locations || settings.locations.length === 0) && settings.lat && settings.lon) {
           settings.locations = [{ city: settings.city || 'Unknown', lat: settings.lat, lon: settings.lon }];
         }
-        // Clean up legacy keys
         delete settings.city;
         delete settings.lat;
         delete settings.lon;
@@ -46,6 +45,18 @@ const Settings = (() => {
   /* ── UI bindings ───────────────────────────────── */
 
   let pendingLocations = [];
+  let selectedBgImage = '';
+  let onSaveCallback = null;
+  let autoSaveTimer = null;
+
+  function autoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(async () => {
+      const settings = readUI();
+      await save(settings);
+      if (typeof onSaveCallback === 'function') onSaveCallback(settings);
+    }, 200);
+  }
 
   function populateUI(settings) {
     document.getElementById('setting-clock-format').value = settings.clockFormat;
@@ -53,7 +64,6 @@ const Settings = (() => {
     document.getElementById('setting-clock-font').value = settings.clockFont;
     document.getElementById('setting-clock-weight').value = settings.clockWeight;
 
-    // Clock size – sync slider and number input
     document.getElementById('setting-clock-size').value = settings.clockSize;
     document.getElementById('setting-clock-size-num').value = settings.clockSize;
 
@@ -63,11 +73,9 @@ const Settings = (() => {
     document.getElementById('setting-bg-mode').value = settings.bgMode;
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
-    // Locations
     pendingLocations = (settings.locations || []).map((l) => ({ ...l }));
     renderLocationChips();
 
-    // City search
     document.getElementById('setting-city-search').value = '';
     document.getElementById('city-results').classList.add('hidden');
 
@@ -90,8 +98,6 @@ const Settings = (() => {
       bgColor: document.getElementById('setting-bg-color').value,
     };
   }
-
-  let selectedBgImage = '';
 
   function toggleBgSubPanels(mode) {
     const pickerArea = document.getElementById('bg-picker-area');
@@ -123,6 +129,7 @@ const Settings = (() => {
         container.querySelectorAll('.thumb').forEach((t) => t.classList.remove('selected'));
         img.classList.add('selected');
         selectedBgImage = filename;
+        autoSave();
       });
       container.appendChild(img);
     });
@@ -150,6 +157,7 @@ const Settings = (() => {
       btn.addEventListener('click', () => {
         pendingLocations.splice(idx, 1);
         renderLocationChips();
+        autoSave();
       });
 
       chip.appendChild(name);
@@ -157,7 +165,6 @@ const Settings = (() => {
       list.appendChild(chip);
     });
 
-    // Hide search if already at 3 locations
     const addArea = document.getElementById('add-location-area');
     addArea.classList.toggle('hidden', pendingLocations.length >= 3);
   }
@@ -198,6 +205,7 @@ const Settings = (() => {
             input.value = '';
             resultsEl.classList.add('hidden');
             renderLocationChips();
+            autoSave();
           });
           resultsEl.appendChild(div);
         });
@@ -225,7 +233,6 @@ const Settings = (() => {
     numInput.addEventListener('input', () => {
       const val = parseInt(numInput.value, 10);
       if (!isNaN(val)) {
-        // Clamp slider to its own range, but let number input go beyond
         slider.value = Math.max(
           parseInt(slider.min),
           Math.min(parseInt(slider.max), val)
@@ -234,23 +241,37 @@ const Settings = (() => {
     });
   }
 
+  /* ── Panel open/close ─────────────────────────── */
+
+  function openPanel() {
+    document.getElementById('settings-panel').classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('settings-panel').classList.remove('open');
+  }
+
   function bindEvents(onSave) {
-    // Open / close
+    onSaveCallback = onSave;
+
+    // Open
     document.getElementById('settings-btn').addEventListener('click', async () => {
       const settings = await load();
       populateUI(settings);
       const images = Background.getImageList();
       renderThumbs(images, settings.bgImage);
-      document.getElementById('settings-panel').classList.remove('hidden');
+      openPanel();
     });
 
-    document.getElementById('settings-close').addEventListener('click', () => {
-      document.getElementById('settings-panel').classList.add('hidden');
-    });
+    // Close
+    document.getElementById('settings-close').addEventListener('click', closePanel);
 
-    document.getElementById('settings-panel').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('settings-panel')) {
-        document.getElementById('settings-panel').classList.add('hidden');
+    // Close when clicking outside the panel
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('settings-panel');
+      if (!panel.classList.contains('open')) return;
+      if (!e.target.closest('#settings-panel') && !e.target.closest('#settings-btn')) {
+        closePanel();
       }
     });
 
@@ -265,13 +286,10 @@ const Settings = (() => {
     // City search
     setupCitySearch();
 
-    // Save
-    document.getElementById('btn-save-settings').addEventListener('click', async () => {
-      const settings = readUI();
-      await save(settings);
-      document.getElementById('settings-panel').classList.add('hidden');
-      if (typeof onSave === 'function') onSave(settings);
-    });
+    // Auto-save on any input/change within the settings panel
+    const inner = document.getElementById('settings-inner');
+    inner.addEventListener('change', autoSave);
+    inner.addEventListener('input', autoSave);
   }
 
   return { load, save, bindEvents, DEFAULTS };
