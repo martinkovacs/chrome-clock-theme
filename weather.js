@@ -35,18 +35,31 @@ const Weather = (() => {
     99: ['&#9889;', 'Thunderstorm with heavy hail'],
   };
 
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const cache = new Map(); // key → { data, timestamp }
+
   function decodeWeather(code) {
     return WMO_CODES[code] || ['&#127777;&#65039;', 'Unknown'];
   }
 
   async function fetchHourly(lat, lon, unit) {
     const tempUnit = unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
+    const cacheKey = `${lat},${lon},${tempUnit}`;
+
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
+
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
       `&hourly=temperature_2m,weathercode&temperature_unit=${tempUnit}&forecast_days=2`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Weather API error: ${res.status}`);
-    return res.json();
+    const data = await res.json();
+
+    cache.set(cacheKey, { data, timestamp: Date.now() });
+    return data;
   }
 
   async function searchCity(query) {
@@ -55,7 +68,7 @@ const Weather = (() => {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}` +
       `&format=json&limit=5&addressdetails=1`;
     const res = await fetch(url, {
-      headers: { 'Accept-Language': 'en' },
+      headers: { 'Accept-Language': 'hu-HU,hu;q=0.9,en;q=0.8' },
     });
     if (!res.ok) return [];
     const results = await res.json();

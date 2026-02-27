@@ -13,10 +13,10 @@
   // Fetch weather
   Weather.update(settings);
 
-  // Refresh weather every 15 minutes
+  // Refresh weather every 5 minutes (cache prevents redundant API calls)
   setInterval(() => {
     Settings.load().then((s) => Weather.update(s));
-  }, 15 * 60 * 1000);
+  }, 5 * 60 * 1000);
 
   // Bind settings panel
   Settings.bindEvents((newSettings) => {
