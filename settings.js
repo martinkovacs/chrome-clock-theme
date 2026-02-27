@@ -139,7 +139,8 @@ const Settings = (() => {
     images.forEach((filename) => {
       const img = document.createElement('img');
       img.className = 'thumb' + (filename === selectedBgImage ? ' selected' : '');
-      img.src = chrome.runtime.getURL('backgrounds/' + filename);
+      img.src = chrome.runtime.getURL('backgrounds/thumbnails/' + filename);
+      img.onerror = () => { img.src = chrome.runtime.getURL('backgrounds/' + filename); };
       img.alt = filename;
       img.title = filename;
       img.addEventListener('click', () => {

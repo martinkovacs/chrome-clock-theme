@@ -12,7 +12,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["backgrounds/*"],
+      "resources": ["backgrounds/*", "backgrounds/thumbnails/*"],
       "matches": ["<all_urls>"]
     }
   ]
