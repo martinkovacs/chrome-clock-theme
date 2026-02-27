@@ -196,5 +196,22 @@ const Weather = (() => {
     });
   }
 
-  return { update, searchCity };
+  /**
+   * Resolve IANA timezone from coordinates via Open-Meteo.
+   */
+  async function resolveTimezone(lat, lon) {
+    try {
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&timezone=auto&forecast_days=1&hourly=temperature_2m`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.timezone || null;
+    } catch {
+      return null;
+    }
+  }
+
+  return { update, searchCity, resolveTimezone };
 })();

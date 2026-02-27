@@ -57,6 +57,42 @@ body {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
+/* ── Mini clocks (top right) ──────────────────────── */
+#mini-clocks-container {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  user-select: none;
+}
+
+.mini-clock {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 12px 18px;
+  text-align: center;
+}
+
+.mini-clock-city {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.mini-clock-time {
+  font-size: 22px;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+  line-height: 1.1;
+}
+
 /* ── Weather widgets ──────────────────────────────── */
 #weather-container {
   position: fixed;
@@ -304,13 +340,13 @@ fieldset input[type="checkbox"] {
   cursor: pointer;
 }
 
-/* ── City search ─────────────────────────────────── */
-#city-search-wrap {
+/* ── City search (shared by weather & world clocks) ── */
+.city-search-wrap {
   position: relative;
   min-width: 180px;
 }
 
-#setting-city-search {
+.city-search-wrap input[type="text"] {
   background: #2a2a3e;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -320,7 +356,7 @@ fieldset input[type="checkbox"] {
   width: 100%;
 }
 
-#city-results {
+.city-results {
   position: absolute;
   top: 100%;
   left: 0;
@@ -334,7 +370,7 @@ fieldset input[type="checkbox"] {
   overflow-y: auto;
 }
 
-#city-results.hidden {
+.city-results.hidden {
   display: none;
 }
 
@@ -399,7 +435,19 @@ fieldset input[type="checkbox"] {
   background: rgba(255, 107, 107, 0.1);
 }
 
-#add-location-area.hidden {
+#add-location-area.hidden,
+#add-clock-city-area.hidden {
+  display: none;
+}
+
+#clock-cities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+#clock-cities-list:empty {
   display: none;
 }
 

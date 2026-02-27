@@ -11,6 +11,7 @@ const Settings = (() => {
     clockWeight: 300,
     clockColor: '#ffffff',
     dateFormat: 'long',
+    clockCities: [],   // [{ city, lat, lon, timezone }, ...] up to 3
     locations: [],     // [{ city, lat, lon }, ...] up to 3
     tempUnit: 'celsius',
     bgMode: 'auto',
@@ -45,6 +46,7 @@ const Settings = (() => {
   /* ── UI bindings ───────────────────────────────── */
 
   let pendingLocations = [];
+  let pendingClockCities = [];
   let selectedBgImage = '';
   let onSaveCallback = null;
   let autoSaveTimer = null;
@@ -73,11 +75,17 @@ const Settings = (() => {
     document.getElementById('setting-bg-mode').value = settings.bgMode;
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
+    // Weather locations
     pendingLocations = (settings.locations || []).map((l) => ({ ...l }));
     renderLocationChips();
-
     document.getElementById('setting-city-search').value = '';
     document.getElementById('city-results').classList.add('hidden');
+
+    // Clock cities
+    pendingClockCities = (settings.clockCities || []).map((c) => ({ ...c }));
+    renderClockCityChips();
+    document.getElementById('setting-clock-city-search').value = '';
+    document.getElementById('clock-city-results').classList.add('hidden');
 
     toggleBgSubPanels(settings.bgMode);
   }
@@ -91,6 +99,7 @@ const Settings = (() => {
       clockSize: parseInt(document.getElementById('setting-clock-size-num').value, 10) || 96,
       clockColor: document.getElementById('setting-clock-color').value,
       dateFormat: document.getElementById('setting-date-format').value,
+      clockCities: pendingClockCities,
       locations: pendingLocations,
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
@@ -135,13 +144,13 @@ const Settings = (() => {
     });
   }
 
-  /* ── Location management ──────────────────────── */
+  /* ── Generic chip rendering ────────────────────── */
 
-  function renderLocationChips() {
-    const list = document.getElementById('locations-list');
+  function renderChips(listId, addAreaId, items, onRemove) {
+    const list = document.getElementById(listId);
     list.innerHTML = '';
 
-    pendingLocations.forEach((loc, idx) => {
+    items.forEach((loc, idx) => {
       const chip = document.createElement('div');
       chip.className = 'location-chip';
 
@@ -154,37 +163,48 @@ const Settings = (() => {
       btn.type = 'button';
       btn.innerHTML = '&times;';
       btn.title = 'Remove';
-      btn.addEventListener('click', () => {
-        pendingLocations.splice(idx, 1);
-        renderLocationChips();
-        autoSave();
-      });
+      btn.addEventListener('click', () => onRemove(idx));
 
       chip.appendChild(name);
       chip.appendChild(btn);
       list.appendChild(chip);
     });
 
-    const addArea = document.getElementById('add-location-area');
-    addArea.classList.toggle('hidden', pendingLocations.length >= 3);
+    const addArea = document.getElementById(addAreaId);
+    addArea.classList.toggle('hidden', items.length >= 3);
   }
 
-  /* ── City search ──────────────────────────────── */
+  function renderLocationChips() {
+    renderChips('locations-list', 'add-location-area', pendingLocations, (idx) => {
+      pendingLocations.splice(idx, 1);
+      renderLocationChips();
+      autoSave();
+    });
+  }
 
-  let searchTimer = null;
+  function renderClockCityChips() {
+    renderChips('clock-cities-list', 'add-clock-city-area', pendingClockCities, (idx) => {
+      pendingClockCities.splice(idx, 1);
+      renderClockCityChips();
+      autoSave();
+    });
+  }
 
-  function setupCitySearch() {
-    const input = document.getElementById('setting-city-search');
-    const resultsEl = document.getElementById('city-results');
+  /* ── Generic city search ───────────────────────── */
+
+  function setupGenericCitySearch(inputId, resultsId, wrapId, onSelect) {
+    const input = document.getElementById(inputId);
+    const resultsEl = document.getElementById(resultsId);
+    let timer = null;
 
     input.addEventListener('input', () => {
-      clearTimeout(searchTimer);
+      clearTimeout(timer);
       const query = input.value.trim();
       if (query.length < 2) {
         resultsEl.classList.add('hidden');
         return;
       }
-      searchTimer = setTimeout(async () => {
+      timer = setTimeout(async () => {
         const results = await Weather.searchCity(query);
         resultsEl.innerHTML = '';
         if (results.length === 0) {
@@ -196,16 +216,9 @@ const Settings = (() => {
           div.className = 'city-result-item';
           div.textContent = r.display_name;
           div.addEventListener('click', () => {
-            if (pendingLocations.length >= 3) return;
-            pendingLocations.push({
-              city: r.name || r.display_name.split(',')[0],
-              lat: r.lat,
-              lon: r.lon,
-            });
+            onSelect(r);
             input.value = '';
             resultsEl.classList.add('hidden');
-            renderLocationChips();
-            autoSave();
           });
           resultsEl.appendChild(div);
         });
@@ -214,7 +227,7 @@ const Settings = (() => {
     });
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#city-search-wrap')) {
+      if (!e.target.closest('#' + wrapId)) {
         resultsEl.classList.add('hidden');
       }
     });
@@ -283,8 +296,31 @@ const Settings = (() => {
       toggleBgSubPanels(e.target.value);
     });
 
-    // City search
-    setupCitySearch();
+    // Weather city search
+    setupGenericCitySearch('setting-city-search', 'city-results', 'city-search-wrap', (r) => {
+      if (pendingLocations.length >= 3) return;
+      pendingLocations.push({
+        city: r.name || r.display_name.split(',')[0],
+        lat: r.lat,
+        lon: r.lon,
+      });
+      renderLocationChips();
+      autoSave();
+    });
+
+    // Clock city search (resolves timezone after selection)
+    setupGenericCitySearch('setting-clock-city-search', 'clock-city-results', 'clock-city-search-wrap', async (r) => {
+      if (pendingClockCities.length >= 3) return;
+      const cityName = r.name || r.display_name.split(',')[0];
+      // Add immediately with placeholder, then resolve timezone
+      const entry = { city: cityName, lat: r.lat, lon: r.lon, timezone: null };
+      pendingClockCities.push(entry);
+      renderClockCityChips();
+
+      const tz = await Weather.resolveTimezone(r.lat, r.lon);
+      entry.timezone = tz || 'UTC';
+      autoSave();
+    });
 
     // Auto-save on any input/change within the settings panel
     const inner = document.getElementById('settings-inner');

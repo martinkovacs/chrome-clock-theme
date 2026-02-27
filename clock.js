@@ -1,5 +1,5 @@
 /**
- * Clock module – renders time and date into #clock and #date.
+ * Clock module – renders the main clock/date and mini world clocks.
  */
 const Clock = (() => {
   let intervalId = null;
@@ -27,6 +27,17 @@ const Clock = (() => {
     return timeStr;
   }
 
+  function formatTimeForTimezone(date, settings, timezone) {
+    const opts = {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: settings.clockFormat === '12h',
+      timeZone: timezone,
+    };
+    if (settings.showSeconds) opts.second = '2-digit';
+    return date.toLocaleTimeString([], opts);
+  }
+
   function formatDate(date, settings) {
     const fmt = settings.dateFormat || 'long';
     if (fmt === 'long') {
@@ -44,7 +55,6 @@ const Clock = (() => {
         day: '2-digit',
       });
     }
-    // ISO
     const y = date.getFullYear();
     const m = pad(date.getMonth() + 1);
     const d = pad(date.getDate());
@@ -67,11 +77,55 @@ const Clock = (() => {
     document.getElementById('date').textContent = formatDate(now, settings);
   }
 
+  /* ── Mini world clocks ─────────────────────────── */
+
+  function renderMiniClocks(settings) {
+    const container = document.getElementById('mini-clocks-container');
+    container.innerHTML = '';
+
+    const cities = settings.clockCities || [];
+    if (cities.length === 0) return;
+
+    cities.forEach((city) => {
+      if (!city.timezone) return;
+
+      const block = document.createElement('div');
+      block.className = 'mini-clock';
+
+      const cityEl = document.createElement('div');
+      cityEl.className = 'mini-clock-city';
+      cityEl.textContent = city.city;
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'mini-clock-time';
+      timeEl.dataset.timezone = city.timezone;
+      timeEl.style.fontFamily = settings.clockFont;
+      timeEl.style.fontWeight = settings.clockWeight || 300;
+      timeEl.style.color = settings.clockColor;
+
+      block.appendChild(cityEl);
+      block.appendChild(timeEl);
+      container.appendChild(block);
+    });
+  }
+
+  function tickMiniClocks(settings) {
+    const now = new Date();
+    document.querySelectorAll('.mini-clock-time[data-timezone]').forEach((el) => {
+      el.textContent = formatTimeForTimezone(now, settings, el.dataset.timezone);
+    });
+  }
+
   function start(settings) {
     if (intervalId) clearInterval(intervalId);
     applyStyle(settings);
+    renderMiniClocks(settings);
     tick(settings);
-    intervalId = setInterval(() => tick(settings), 1000);
+    tickMiniClocks(settings);
+    intervalId = setInterval(() => {
+      tick(settings);
+      tickMiniClocks(settings);
+    }, 1000);
   }
 
   return { start };

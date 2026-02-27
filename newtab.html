@@ -13,6 +13,9 @@
   <!-- Weather widgets – top left, dynamically populated -->
   <div id="weather-container"></div>
 
+  <!-- Mini clocks – top right, dynamically populated -->
+  <div id="mini-clocks-container"></div>
+
   <!-- Clock – center -->
   <div id="clock-container">
     <div id="clock">00:00:00</div>
@@ -96,6 +99,21 @@
         </label>
       </fieldset>
 
+      <!-- World clocks settings -->
+      <fieldset>
+        <legend>World Clocks</legend>
+        <div id="clock-cities-list"></div>
+        <div id="add-clock-city-area">
+          <label>
+            <span>Add city</span>
+            <div class="city-search-wrap" id="clock-city-search-wrap">
+              <input type="text" id="setting-clock-city-search" placeholder="Search for a city...">
+              <div class="city-results hidden" id="clock-city-results"></div>
+            </div>
+          </label>
+        </div>
+      </fieldset>
+
       <!-- Weather / location settings -->
       <fieldset>
         <legend>Weather &amp; Location</legend>
@@ -103,9 +121,9 @@
         <div id="add-location-area">
           <label>
             <span>Add city</span>
-            <div id="city-search-wrap">
+            <div class="city-search-wrap" id="city-search-wrap">
               <input type="text" id="setting-city-search" placeholder="Search for a city...">
-              <div id="city-results" class="hidden"></div>
+              <div class="city-results hidden" id="city-results"></div>
             </div>
           </label>
         </div>
