@@ -61,10 +61,37 @@ const Clock = (() => {
     return `${y}-${m}-${d}`;
   }
 
+  let googleFontLink = null;
+
+  function resolveFont(settings) {
+    if (settings.clockFont === 'custom' && settings.clockCustomFont) {
+      const fontName = settings.clockCustomFont;
+      const encoded = encodeURIComponent(fontName);
+      const href = `https://fonts.googleapis.com/css2?family=${encoded}:wght@100;200;300;400;500;600;700;800;900&display=swap`;
+
+      if (!googleFontLink) {
+        googleFontLink = document.createElement('link');
+        googleFontLink.rel = 'stylesheet';
+        document.head.appendChild(googleFontLink);
+      }
+      if (googleFontLink.href !== href) {
+        googleFontLink.href = href;
+      }
+      return `'${fontName}', 'Segoe UI', system-ui, sans-serif`;
+    }
+    // Remove the link if switching away from custom
+    if (googleFontLink) {
+      googleFontLink.remove();
+      googleFontLink = null;
+    }
+    return settings.clockFont;
+  }
+
   function applyStyle(settings) {
     const clockEl = document.getElementById('clock');
     const dateEl = document.getElementById('date');
-    clockEl.style.fontFamily = settings.clockFont;
+    const fontFamily = resolveFont(settings);
+    clockEl.style.fontFamily = fontFamily;
     clockEl.style.fontWeight = settings.clockWeight || 300;
     clockEl.style.fontSize = settings.clockSize + 'px';
     clockEl.style.color = settings.clockColor;
@@ -99,7 +126,7 @@ const Clock = (() => {
       const timeEl = document.createElement('div');
       timeEl.className = 'mini-clock-time';
       timeEl.dataset.timezone = city.timezone;
-      timeEl.style.fontFamily = settings.clockFont;
+      timeEl.style.fontFamily = resolveFont(settings);
       timeEl.style.fontWeight = settings.clockWeight || 300;
       timeEl.style.color = settings.clockColor;
 

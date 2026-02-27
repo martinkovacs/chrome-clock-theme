@@ -504,6 +504,10 @@ fieldset input[type="checkbox"] {
   opacity: 0.6;
 }
 
+#custom-font-label.hidden {
+  display: none;
+}
+
 #bg-color-label.hidden {
   display: none;
 }
