@@ -258,10 +258,12 @@ const Settings = (() => {
 
   function openPanel() {
     document.getElementById('settings-panel').classList.add('open');
+    document.body.classList.add('settings-open');
   }
 
   function closePanel() {
     document.getElementById('settings-panel').classList.remove('open');
+    document.body.classList.remove('settings-open');
   }
 
   function bindEvents(onSave) {
