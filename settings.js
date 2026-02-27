@@ -8,6 +8,7 @@ const Settings = (() => {
     showSeconds: true,
     clockFont: "'Segoe UI', system-ui, sans-serif",
     clockSize: 96,
+    clockWeight: 300,
     clockColor: '#ffffff',
     dateFormat: 'long',
     locations: [],     // [{ city, lat, lon }, ...] up to 3
@@ -50,6 +51,7 @@ const Settings = (() => {
     document.getElementById('setting-clock-format').value = settings.clockFormat;
     document.getElementById('setting-show-seconds').checked = settings.showSeconds;
     document.getElementById('setting-clock-font').value = settings.clockFont;
+    document.getElementById('setting-clock-weight').value = settings.clockWeight;
 
     // Clock size – sync slider and number input
     document.getElementById('setting-clock-size').value = settings.clockSize;
@@ -77,6 +79,7 @@ const Settings = (() => {
       clockFormat: document.getElementById('setting-clock-format').value,
       showSeconds: document.getElementById('setting-show-seconds').checked,
       clockFont: document.getElementById('setting-clock-font').value,
+      clockWeight: parseInt(document.getElementById('setting-clock-weight').value, 10) || 300,
       clockSize: parseInt(document.getElementById('setting-clock-size-num').value, 10) || 96,
       clockColor: document.getElementById('setting-clock-color').value,
       dateFormat: document.getElementById('setting-date-format').value,

@@ -55,6 +55,7 @@ const Clock = (() => {
     const clockEl = document.getElementById('clock');
     const dateEl = document.getElementById('date');
     clockEl.style.fontFamily = settings.clockFont;
+    clockEl.style.fontWeight = settings.clockWeight || 300;
     clockEl.style.fontSize = settings.clockSize + 'px';
     clockEl.style.color = settings.clockColor;
     dateEl.style.color = settings.clockColor;
