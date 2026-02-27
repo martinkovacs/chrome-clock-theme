@@ -1,5 +1,6 @@
 /**
- * Weather module – fetches current weather from Open-Meteo API.
+ * Weather module – fetches hourly forecast from Open-Meteo and renders
+ * 3 weather cards (now + next 2 hours). City lookup via Nominatim.
  */
 const Weather = (() => {
   // WMO weather code → emoji + description
@@ -38,43 +39,114 @@ const Weather = (() => {
     return WMO_CODES[code] || ['&#127777;&#65039;', 'Unknown'];
   }
 
-  async function fetchWeather(lat, lon, unit) {
+  async function fetchHourly(lat, lon, unit) {
     const tempUnit = unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&current_weather=true&temperature_unit=${tempUnit}`;
+      `&hourly=temperature_2m,weathercode&temperature_unit=${tempUnit}&forecast_days=2`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Weather API error: ${res.status}`);
     return res.json();
   }
 
+  /**
+   * Search for cities using OpenStreetMap Nominatim.
+   * Returns an array of { display_name, lat, lon }.
+   */
+  async function searchCity(query) {
+    if (!query || query.length < 2) return [];
+    const url =
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}` +
+      `&format=json&limit=5&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'en' },
+    });
+    if (!res.ok) return [];
+    const results = await res.json();
+    return results.map((r) => ({
+      display_name: r.display_name,
+      name: r.address.city || r.address.town || r.address.village || r.name,
+      lat: parseFloat(r.lat),
+      lon: parseFloat(r.lon),
+    }));
+  }
+
+  function findCurrentHourIndex(times) {
+    const now = new Date();
+    // times are ISO strings like "2026-02-27T13:00"
+    // Find the latest time that is <= now
+    let idx = 0;
+    for (let i = 0; i < times.length; i++) {
+      if (new Date(times[i]) <= now) {
+        idx = i;
+      } else {
+        break;
+      }
+    }
+    return idx;
+  }
+
+  function formatHourLabel(isoTime, offset) {
+    if (offset === 0) return 'Now';
+    const d = new Date(isoTime);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
   function render(data, settings) {
-    const cw = data.current_weather;
-    const [iconHtml, desc] = decodeWeather(cw.weathercode);
+    const hourly = data.hourly;
+    const startIdx = findCurrentHourIndex(hourly.time);
     const unitLabel = settings.tempUnit === 'fahrenheit' ? 'F' : 'C';
 
-    document.getElementById('weather-icon').innerHTML = iconHtml;
-    document.getElementById('weather-temp').textContent =
-      `${Math.round(cw.temperature)}\u00B0${unitLabel}`;
-    document.getElementById('weather-desc').textContent = desc;
-    document.getElementById('weather-location-label').textContent =
-      settings.city || `${settings.lat}, ${settings.lon}`;
+    for (let i = 0; i < 3; i++) {
+      const hi = startIdx + i;
+      if (hi >= hourly.time.length) break;
+
+      const card = document.getElementById(`weather-${i}`);
+      if (!card) continue;
+
+      const temp = Math.round(hourly.temperature_2m[hi]);
+      const code = hourly.weathercode[hi];
+      const [iconHtml, desc] = decodeWeather(code);
+      const timeLabel = formatHourLabel(hourly.time[hi], i);
+
+      card.querySelector('.weather-time').textContent = timeLabel;
+      card.querySelector('.weather-icon').innerHTML = iconHtml;
+      card.querySelector('.weather-temp').textContent = `${temp}\u00B0${unitLabel}`;
+      card.querySelector('.weather-desc').textContent = desc;
+    }
+
+    const locationEl = document.getElementById('weather-location-label');
+    if (locationEl) {
+      locationEl.textContent = settings.city || `${settings.lat}, ${settings.lon}`;
+    }
+  }
+
+  function renderEmpty(message) {
+    for (let i = 0; i < 3; i++) {
+      const card = document.getElementById(`weather-${i}`);
+      if (!card) continue;
+      card.querySelector('.weather-time').textContent = '';
+      card.querySelector('.weather-icon').innerHTML = '';
+      card.querySelector('.weather-temp').textContent = '';
+      card.querySelector('.weather-desc').textContent = i === 0 ? message : '';
+    }
+    const locationEl = document.getElementById('weather-location-label');
+    if (locationEl) locationEl.textContent = '';
   }
 
   async function update(settings) {
     if (!settings.lat || !settings.lon) {
-      document.getElementById('weather-desc').textContent =
-        'Set location in settings';
+      renderEmpty('Set location in settings');
       return;
     }
     try {
-      const data = await fetchWeather(settings.lat, settings.lon, settings.tempUnit);
+      const data = await fetchHourly(settings.lat, settings.lon, settings.tempUnit);
       render(data, settings);
     } catch (err) {
       console.error('Weather fetch failed:', err);
-      document.getElementById('weather-desc').textContent = 'Unable to load';
+      renderEmpty('Unable to load');
     }
   }
 
-  return { update };
+  return { update, searchCity };
 })();

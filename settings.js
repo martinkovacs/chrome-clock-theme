@@ -33,6 +33,11 @@ const Settings = (() => {
 
   /* ── UI bindings ───────────────────────────────── */
 
+  // Pending location from city search (lat/lon stored here until Save)
+  let pendingLat = null;
+  let pendingLon = null;
+  let pendingCity = '';
+
   function populateUI(settings) {
     document.getElementById('setting-clock-format').value = settings.clockFormat;
     document.getElementById('setting-show-seconds').checked = settings.showSeconds;
@@ -41,12 +46,25 @@ const Settings = (() => {
     document.getElementById('clock-size-val').textContent = settings.clockSize + 'px';
     document.getElementById('setting-clock-color').value = settings.clockColor;
     document.getElementById('setting-date-format').value = settings.dateFormat;
-    document.getElementById('setting-city').value = settings.city || '';
-    document.getElementById('setting-lat').value = settings.lat ?? '';
-    document.getElementById('setting-lon').value = settings.lon ?? '';
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
     document.getElementById('setting-bg-color').value = settings.bgColor;
+
+    // City search
+    document.getElementById('setting-city-search').value = '';
+    document.getElementById('city-results').classList.add('hidden');
+    pendingLat = settings.lat;
+    pendingLon = settings.lon;
+    pendingCity = settings.city || '';
+
+    const selectedEl = document.getElementById('city-selected');
+    const nameEl = document.getElementById('city-selected-name');
+    if (pendingCity) {
+      nameEl.textContent = pendingCity;
+      selectedEl.classList.remove('hidden');
+    } else {
+      selectedEl.classList.add('hidden');
+    }
 
     toggleBgSubPanels(settings.bgMode);
   }
@@ -59,9 +77,9 @@ const Settings = (() => {
       clockSize: parseInt(document.getElementById('setting-clock-size').value, 10),
       clockColor: document.getElementById('setting-clock-color').value,
       dateFormat: document.getElementById('setting-date-format').value,
-      city: document.getElementById('setting-city').value.trim(),
-      lat: parseFloat(document.getElementById('setting-lat').value) || null,
-      lon: parseFloat(document.getElementById('setting-lon').value) || null,
+      city: pendingCity,
+      lat: pendingLat,
+      lon: pendingLon,
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
@@ -106,6 +124,56 @@ const Settings = (() => {
     });
   }
 
+  /* ── City search ──────────────────────────────── */
+
+  let searchTimer = null;
+
+  function setupCitySearch() {
+    const input = document.getElementById('setting-city-search');
+    const resultsEl = document.getElementById('city-results');
+
+    input.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const query = input.value.trim();
+      if (query.length < 2) {
+        resultsEl.classList.add('hidden');
+        return;
+      }
+      // Debounce 400ms
+      searchTimer = setTimeout(async () => {
+        const results = await Weather.searchCity(query);
+        resultsEl.innerHTML = '';
+        if (results.length === 0) {
+          resultsEl.classList.add('hidden');
+          return;
+        }
+        results.forEach((r) => {
+          const div = document.createElement('div');
+          div.className = 'city-result-item';
+          div.textContent = r.display_name;
+          div.addEventListener('click', () => {
+            pendingLat = r.lat;
+            pendingLon = r.lon;
+            pendingCity = r.name || r.display_name.split(',')[0];
+            input.value = '';
+            resultsEl.classList.add('hidden');
+            document.getElementById('city-selected-name').textContent = pendingCity;
+            document.getElementById('city-selected').classList.remove('hidden');
+          });
+          resultsEl.appendChild(div);
+        });
+        resultsEl.classList.remove('hidden');
+      }, 400);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#city-search-wrap')) {
+        resultsEl.classList.add('hidden');
+      }
+    });
+  }
+
   function bindEvents(onSave) {
     // Open / close
     document.getElementById('settings-btn').addEventListener('click', async () => {
@@ -137,17 +205,8 @@ const Settings = (() => {
       toggleBgSubPanels(e.target.value);
     });
 
-    // Geolocate
-    document.getElementById('btn-geolocate').addEventListener('click', () => {
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          document.getElementById('setting-lat').value = pos.coords.latitude.toFixed(4);
-          document.getElementById('setting-lon').value = pos.coords.longitude.toFixed(4);
-        },
-        (err) => console.warn('Geolocation failed:', err)
-      );
-    });
+    // City search
+    setupCitySearch();
 
     // Save
     document.getElementById('btn-save-settings').addEventListener('click', async () => {

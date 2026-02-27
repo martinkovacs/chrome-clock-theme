@@ -10,14 +10,27 @@
   <!-- Background overlay for readability -->
   <div id="bg-overlay"></div>
 
-  <!-- Weather widget – top left -->
-  <div id="weather-widget">
-    <div id="weather-icon"></div>
-    <div id="weather-info">
-      <div id="weather-temp">--°C</div>
-      <div id="weather-desc">Loading...</div>
-      <div id="weather-location-label"></div>
+  <!-- Weather widgets – top left, 3 hourly cards -->
+  <div id="weather-container">
+    <div class="weather-card" id="weather-0">
+      <div class="weather-time">Now</div>
+      <div class="weather-icon"></div>
+      <div class="weather-temp">--°</div>
+      <div class="weather-desc">Loading...</div>
     </div>
+    <div class="weather-card" id="weather-1">
+      <div class="weather-time"></div>
+      <div class="weather-icon"></div>
+      <div class="weather-temp"></div>
+      <div class="weather-desc"></div>
+    </div>
+    <div class="weather-card" id="weather-2">
+      <div class="weather-time"></div>
+      <div class="weather-icon"></div>
+      <div class="weather-temp"></div>
+      <div class="weather-desc"></div>
+    </div>
+    <div id="weather-location-label"></div>
   </div>
 
   <!-- Clock – center -->
@@ -87,17 +100,15 @@
       <fieldset>
         <legend>Weather &amp; Location</legend>
         <label>
-          <span>City name</span>
-          <input type="text" id="setting-city" placeholder="e.g. Budapest">
+          <span>City</span>
+          <div id="city-search-wrap">
+            <input type="text" id="setting-city-search" placeholder="Search for a city...">
+            <div id="city-results" class="hidden"></div>
+          </div>
         </label>
-        <label>
-          <span>Latitude</span>
-          <input type="number" id="setting-lat" step="0.0001" placeholder="47.4979">
-        </label>
-        <label>
-          <span>Longitude</span>
-          <input type="number" id="setting-lon" step="0.0001" placeholder="19.0402">
-        </label>
+        <div id="city-selected" class="hint hidden">
+          Selected: <span id="city-selected-name"></span>
+        </div>
         <label>
           <span>Temperature unit</span>
           <select id="setting-temp-unit">
@@ -105,7 +116,6 @@
             <option value="fahrenheit">Fahrenheit</option>
           </select>
         </label>
-        <button id="btn-geolocate" type="button">Use my current location</button>
       </fieldset>
 
       <!-- Background settings -->

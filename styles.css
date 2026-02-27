@@ -57,44 +57,62 @@ body {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Weather widget ───────────────────────────────── */
-#weather-widget {
+/* ── Weather widgets ──────────────────────────────── */
+#weather-container {
   position: fixed;
   top: 24px;
   left: 28px;
   z-index: 1;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  user-select: none;
+}
+
+.weather-card {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
-  padding: 14px 20px;
-  user-select: none;
+  padding: 16px 20px;
+  min-width: 130px;
+  text-align: center;
   transition: opacity 0.3s;
 }
 
-#weather-icon {
-  font-size: 36px;
-  line-height: 1;
+.weather-card .weather-time {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  margin-bottom: 6px;
 }
 
-#weather-temp {
-  font-size: 22px;
+.weather-card .weather-icon {
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.weather-card .weather-temp {
+  font-size: 24px;
   font-weight: 600;
 }
 
-#weather-desc {
-  font-size: 13px;
+.weather-card .weather-desc {
+  font-size: 12px;
   opacity: 0.8;
+  margin-top: 4px;
 }
 
 #weather-location-label {
-  font-size: 11px;
+  width: 100%;
+  font-size: 12px;
   opacity: 0.6;
   margin-top: 2px;
+  padding-left: 4px;
 }
 
 /* ── Settings button ──────────────────────────────── */
@@ -103,23 +121,21 @@ body {
   bottom: 24px;
   right: 28px;
   z-index: 2;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
+  background: none;
+  border: none;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
-  transition: background 0.2s, transform 0.2s;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0;
+  transition: color 0.2s, transform 0.2s;
 }
 
 #settings-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.8);
   transform: rotate(30deg);
 }
 
@@ -253,7 +269,6 @@ fieldset input[type="checkbox"] {
   cursor: pointer;
 }
 
-#btn-geolocate,
 #btn-save-settings {
   display: block;
   width: 100%;
@@ -264,19 +279,6 @@ fieldset input[type="checkbox"] {
   font-size: 14px;
   font-weight: 600;
   transition: background 0.2s;
-}
-
-#btn-geolocate {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ccc;
-  margin-top: 8px;
-}
-
-#btn-geolocate:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-#btn-save-settings {
   background: #5865f2;
   color: #fff;
   margin-top: 4px;
@@ -284,6 +286,69 @@ fieldset input[type="checkbox"] {
 
 #btn-save-settings:hover {
   background: #4752c4;
+}
+
+/* ── City search ─────────────────────────────────── */
+#city-search-wrap {
+  position: relative;
+  min-width: 180px;
+}
+
+#setting-city-search {
+  background: #2a2a3e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+
+#city-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #2a2a3e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#city-results.hidden {
+  display: none;
+}
+
+.city-result-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e0e0e0;
+}
+
+.city-result-item:last-child {
+  border-bottom: none;
+}
+
+.city-result-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#city-selected {
+  padding: 6px 0 2px;
+}
+
+#city-selected.hidden {
+  display: none;
+}
+
+#city-selected-name {
+  font-weight: 600;
+  color: #fff;
 }
 
 /* Background picker */
