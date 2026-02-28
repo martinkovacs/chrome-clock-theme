@@ -108,12 +108,12 @@ const Background = (() => {
   }
 
   async function apply(settings) {
-    imageList = await loadImageList();
-
-    // Only cache deterministic modes; random modes would cause a
-    // visible double-swap (cached old image → new random image).
+    // Set cache mode immediately — before any async work — so stale
+    // cache is cleared even if the tab closes during the directory scan.
     cacheEnabled = (settings.bgMode === 'solid' || settings.bgMode === 'pick' || settings.bgMode === 'custom-image');
     if (!cacheEnabled) clearCache();
+
+    imageList = await loadImageList();
 
     if (settings.bgMode === 'solid') {
       currentImage = null;
