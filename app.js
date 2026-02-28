@@ -1,43 +1,53 @@
 /**
- * App entry point – wires everything together on page load.
+ * App entry point – lean critical path, then deferred loading.
+ *
+ * Critical path (before first paint):
+ *   Settings.load → Background.apply → Clock.start → reveal
+ *
+ * Deferred (after reveal):
+ *   World clocks, weather.js (dynamic load), settings panel binding
  */
 (async () => {
-  // Early background for custom modes: data URLs are cached in IndexedDB
-  // (too large for localStorage). Load before the full settings/directory
-  // scan chain so the user sees a background sooner.
-  try {
-    if (localStorage.getItem('cachedBg') === 'idb') {
-      const cached = await ImageStore.load('cachedBg');
-      if (cached) {
-        document.body.style.backgroundImage = `url("${cached}")`;
-      }
-    }
-  } catch (e) {}
+  // Clean up stale background cache entries from previous versions
+  try { localStorage.removeItem('cachedBg'); localStorage.removeItem('cachedBgSolid'); } catch (e) {}
 
   const settings = await Settings.load();
 
-  // Apply background (picks a new random image for auto/custom-dir modes)
   await Background.apply(settings);
 
-  // Start clock (this sets the correct time and font before showing)
+  // Main clock only (world clocks deferred)
   Clock.start(settings);
 
-  // Reveal UI now that clock and background are ready
+  // Reveal — background and main clock are ready
   document.body.classList.remove('loading');
 
-  // Fetch weather
-  Weather.update(settings);
+  // --- Deferred: world clocks, weather, settings panel ---
 
-  // Refresh weather every 5 minutes (cache prevents redundant API calls)
-  setInterval(() => {
-    Settings.load().then((s) => Weather.update(s));
-  }, 5 * 60 * 1000);
+  Clock.startWorldClocks(settings);
+
+  // Load weather.js dynamically, then start weather
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  }
+
+  loadScript('weather.js').then(() => {
+    Weather.update(settings);
+    setInterval(() => {
+      Settings.load().then((s) => Weather.update(s));
+    }, 5 * 60 * 1000);
+  });
 
   // Bind settings panel
   Settings.bindEvents((newSettings) => {
-    // Re-apply everything with updated settings
     Clock.start(newSettings);
-    Weather.update(newSettings);
+    Clock.startWorldClocks(newSettings);
     Background.apply(newSettings);
+    if (typeof Weather !== 'undefined') Weather.update(newSettings);
   });
 })();

@@ -146,14 +146,18 @@ const Clock = (() => {
   function start(settings) {
     if (intervalId) clearInterval(intervalId);
     applyStyle(settings);
-    renderMiniClocks(settings);
     tick(settings);
-    tickMiniClocks(settings);
+    // Interval ticks both main + world clocks (world clocks are a no-op if not rendered yet)
     intervalId = setInterval(() => {
       tick(settings);
       tickMiniClocks(settings);
     }, 1000);
   }
 
-  return { start };
+  function startWorldClocks(settings) {
+    renderMiniClocks(settings);
+    tickMiniClocks(settings);
+  }
+
+  return { start, startWorldClocks };
 })();
