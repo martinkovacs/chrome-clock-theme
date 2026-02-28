@@ -320,7 +320,7 @@ fieldset label span:first-child {
 fieldset select,
 fieldset input[type="text"],
 fieldset input[type="number"] {
-  background: #2a2a3e;
+  background: #323336;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #e0e0e0;
@@ -368,7 +368,7 @@ fieldset input[type="checkbox"] {
 }
 
 .city-search-wrap input[type="text"] {
-  background: #2a2a3e;
+  background: #323336;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #e0e0e0;
@@ -383,7 +383,7 @@ fieldset input[type="checkbox"] {
   left: 0;
   right: 0;
   z-index: 10;
-  background: #2a2a3e;
+  background: #323336;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   margin-top: 4px;
@@ -532,7 +532,7 @@ fieldset input[type="checkbox"] {
 }
 
 fieldset input[type="file"] {
-  background: #2a2a3e;
+  background: #323336;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #e0e0e0;

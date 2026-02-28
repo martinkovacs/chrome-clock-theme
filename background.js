@@ -83,7 +83,7 @@ const Background = (() => {
     }
 
     if (settings.bgMode === 'custom-dir') {
-      const images = settings.bgCustomDirImages || [];
+      const images = (await ImageStore.load('customDirImages')) || [];
       if (images.length > 0) {
         // Keep the same random pick across settings saves
         if (!currentImage || !images.includes(currentImage)) {

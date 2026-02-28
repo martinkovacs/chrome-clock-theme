@@ -18,7 +18,6 @@ const Settings = (() => {
     bgMode: 'auto',
     bgImage: '',
     bgCustomImage: '',
-    bgCustomDirImages: [],
     bgColor: '#252629',
   };
 
@@ -34,6 +33,18 @@ const Settings = (() => {
         delete settings.city;
         delete settings.lat;
         delete settings.lon;
+
+        // Migrate old blue background color to grey
+        if (settings.bgColor === '#1a1a2e') {
+          settings.bgColor = '#252629';
+        }
+
+        // Migrate bgCustomDirImages from chrome.storage → IndexedDB
+        if (data.bgCustomDirImages && data.bgCustomDirImages.length > 0) {
+          ImageStore.save('customDirImages', data.bgCustomDirImages);
+          chrome.storage.local.remove(['bgCustomDirImages']);
+        }
+        delete settings.bgCustomDirImages;
 
         resolve(settings);
       });
@@ -81,9 +92,11 @@ const Settings = (() => {
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
     pendingCustomImage = settings.bgCustomImage || '';
-    pendingCustomDirImages = settings.bgCustomDirImages || [];
     updateCustomImagePreview(pendingCustomImage);
-    updateCustomDirInfo(pendingCustomDirImages);
+    ImageStore.load('customDirImages').then((images) => {
+      pendingCustomDirImages = images || [];
+      updateCustomDirInfo(pendingCustomDirImages);
+    });
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
     // Weather locations
@@ -117,7 +130,6 @@ const Settings = (() => {
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
       bgCustomImage: pendingCustomImage,
-      bgCustomDirImages: pendingCustomDirImages,
       bgColor: document.getElementById('setting-bg-color').value,
     };
   }
@@ -371,7 +383,7 @@ const Settings = (() => {
       }
     });
 
-    // Custom directory file picker
+    // Custom directory file picker → store in IndexedDB
     document.getElementById('setting-bg-custom-dir-files').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files).filter(isImageFile);
       if (files.length === 0) return;
@@ -382,6 +394,7 @@ const Settings = (() => {
       }
       pendingCustomDirImages = dataUrls;
       updateCustomDirInfo(dataUrls);
+      await ImageStore.save('customDirImages', dataUrls);
       autoSave();
     });
 
