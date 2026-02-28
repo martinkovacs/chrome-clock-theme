@@ -53,8 +53,14 @@ const Background = (() => {
   // Cache the current background so the next new-tab can apply it
   // synchronously from localStorage (short URLs) or via a fast
   // IndexedDB read (data URLs that exceed localStorage limits).
+  // Only enabled for deterministic modes (pick, custom-image, solid).
+  // Random modes (auto, custom-dir) clear the cache to avoid a
+  // visible double-swap (stale image → new random image).
+
+  let cacheEnabled = false;
 
   function cacheBg(url) {
+    if (!cacheEnabled) return;
     try {
       if (url && url.startsWith('data:')) {
         localStorage.setItem('cachedBg', 'idb');
@@ -68,9 +74,17 @@ const Background = (() => {
   }
 
   function cacheSolid(color) {
+    if (!cacheEnabled) return;
     try {
       localStorage.removeItem('cachedBg');
       localStorage.setItem('cachedBgSolid', color);
+    } catch (e) {}
+  }
+
+  function clearCache() {
+    try {
+      localStorage.removeItem('cachedBg');
+      localStorage.removeItem('cachedBgSolid');
     } catch (e) {}
   }
 
@@ -95,6 +109,11 @@ const Background = (() => {
 
   async function apply(settings) {
     imageList = await loadImageList();
+
+    // Only cache deterministic modes; random modes would cause a
+    // visible double-swap (cached old image → new random image).
+    cacheEnabled = (settings.bgMode === 'solid' || settings.bgMode === 'pick' || settings.bgMode === 'custom-image');
+    if (!cacheEnabled) clearCache();
 
     if (settings.bgMode === 'solid') {
       currentImage = null;
