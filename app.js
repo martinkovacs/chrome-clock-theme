@@ -13,12 +13,17 @@
  *   World clocks, weather.js (dynamic load), settings panel binding
  */
 (async () => {
-  // If the user toggled the extension off via the popup, leave the
-  // page blank (body.loading hides all UI, dark grey bg shows).
+  // If the user toggled the extension off via the popup, redirect to
+  // Chrome's built-in new tab page (search bar + most-visited tiles).
+  // chrome://new-tab-page/ is Chrome's own NTP — distinct from
+  // chrome://newtab/ which is what extensions override, so no loop.
   const { extensionEnabled = true } = await new Promise((resolve) =>
     chrome.storage.local.get({ extensionEnabled: true }, resolve)
   );
-  if (!extensionEnabled) return;
+  if (!extensionEnabled) {
+    location.replace('chrome://new-tab-page/');
+    return;
+  }
 
   // Clean up stale background cache entries from previous versions
   try { localStorage.removeItem('cachedBg'); localStorage.removeItem('cachedBgSolid'); } catch (e) {}
