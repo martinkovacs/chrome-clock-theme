@@ -50,17 +50,13 @@ const Background = (() => {
   }
 
   /* ── Cache helpers ──────────────────────────────── */
-  // Cache the current background so the next new-tab can apply it
-  // synchronously from localStorage (short URLs) or via a fast
-  // IndexedDB read (data URLs that exceed localStorage limits).
-  // Only enabled for deterministic modes (pick, custom-image, solid).
-  // Random modes (auto, custom-dir) clear the cache to avoid a
-  // visible double-swap (stale image → new random image).
-
-  let cacheEnabled = false;
+  // Cache the background so the next new-tab can display it instantly
+  // from localStorage (short URLs) or IndexedDB (data URLs).
+  // Deterministic modes cache the current state; random modes (auto,
+  // custom-dir) cache the NEXT pre-picked image so there is no
+  // double-swap — the cached image IS the intended image.
 
   function cacheBg(url) {
-    if (!cacheEnabled) return;
     try {
       if (url && url.startsWith('data:')) {
         localStorage.setItem('cachedBg', 'idb');
@@ -74,17 +70,9 @@ const Background = (() => {
   }
 
   function cacheSolid(color) {
-    if (!cacheEnabled) return;
     try {
       localStorage.removeItem('cachedBg');
       localStorage.setItem('cachedBgSolid', color);
-    } catch (e) {}
-  }
-
-  function clearCache() {
-    try {
-      localStorage.removeItem('cachedBg');
-      localStorage.removeItem('cachedBgSolid');
     } catch (e) {}
   }
 
@@ -118,12 +106,32 @@ const Background = (() => {
     cacheBg(url);
   }
 
-  async function apply(settings) {
-    // Set cache mode immediately — before any async work — so stale
-    // cache is cleared even if the tab closes during the directory scan.
-    cacheEnabled = (settings.bgMode === 'solid' || settings.bgMode === 'pick' || settings.bgMode === 'custom-image');
-    if (!cacheEnabled) clearCache();
+  /* ── Pre-pick helper ─────────────────────────────── */
+  // After displaying the current random image, pre-pick and cache
+  // the NEXT one so the following new-tab shows it instantly (0ms).
+  // For bundled images the URL is also preloaded into browser cache.
 
+  function prepickNext(items, current, toUrl) {
+    if (items.length === 0) return;
+    let next;
+    if (items.length === 1) {
+      next = items[0];
+    } else {
+      do {
+        next = items[Math.floor(Math.random() * items.length)];
+      } while (next === current);
+    }
+    if (toUrl) {
+      // Bundled image: preload into browser cache, then save URL
+      const url = toUrl(next);
+      preloadImage(url).then(() => cacheBg(url));
+    } else {
+      // Data URL: save to IDB for next load
+      cacheBg(next);
+    }
+  }
+
+  async function apply(settings) {
     imageList = await loadImageList();
 
     if (settings.bgMode === 'solid') {
@@ -144,17 +152,36 @@ const Background = (() => {
 
     if (settings.bgMode === 'custom-dir') {
       const images = (await ImageStore.load('customDirImages')) || [];
-      if (images.length > 0) {
-        // Keep the same random pick across settings saves
-        if (!currentImage || !images.includes(currentImage)) {
-          const idx = Math.floor(Math.random() * images.length);
-          currentImage = images[idx];
-        }
-        await applyUrl(currentImage);
-      } else {
+      if (images.length === 0) {
         currentImage = null;
         applySolid(settings.bgColor);
+        return;
       }
+
+      // Within-session re-apply (settings save): keep current image
+      if (currentImage && images.includes(currentImage)) {
+        return;
+      }
+
+      // New tab: check for a pre-picked cached image
+      try {
+        const marker = localStorage.getItem('cachedBg');
+        if (marker === 'idb') {
+          const cachedUrl = await ImageStore.load('cachedBg');
+          if (cachedUrl && images.includes(cachedUrl)) {
+            currentImage = cachedUrl;
+            // Already displayed by app.js early load — just pre-pick next
+            prepickNext(images, currentImage);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // No valid cache: pick random
+      const idx = Math.floor(Math.random() * images.length);
+      currentImage = images[idx];
+      await applyUrl(currentImage);
+      prepickNext(images, currentImage);
       return;
     }
 
@@ -165,14 +192,34 @@ const Background = (() => {
     }
 
     if (settings.bgMode === 'auto') {
-      // Keep the same random image across settings saves;
-      // a fresh random pick only happens on page load (currentImage is null).
+      // Within-session re-apply (settings save): keep current image
       if (currentImage && imageList.includes(currentImage)) {
         return;
       }
+
+      // New tab: check for a pre-picked cached image
+      try {
+        const cached = localStorage.getItem('cachedBg');
+        if (cached && cached !== 'idb') {
+          const prefix = chrome.runtime.getURL('backgrounds/');
+          if (cached.startsWith(prefix)) {
+            const filename = cached.slice(prefix.length);
+            if (imageList.includes(filename)) {
+              currentImage = filename;
+              // Already displayed by inline script — just pre-pick next
+              prepickNext(imageList, currentImage, (f) => chrome.runtime.getURL('backgrounds/' + f));
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+
+      // No valid cache: pick random
       const idx = Math.floor(Math.random() * imageList.length);
       currentImage = imageList[idx];
       await applyImage(currentImage);
+      // Pre-pick next for future loads (fire-and-forget)
+      prepickNext(imageList, currentImage, (f) => chrome.runtime.getURL('backgrounds/' + f));
       return;
     }
 
