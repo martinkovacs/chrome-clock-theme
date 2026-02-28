@@ -6,16 +6,15 @@
  * just drop images in and they'll appear automatically.
  *
  * On parse, init() fires immediately — speculatively loading the image
- * list and pre-fetching a random bundled image as a blob, plus starting
- * the custom-dir IDB read. All of this runs in parallel with the
- * remaining JS parsing and Settings.load(), so by the time apply() is
- * called the image is likely already fetched.
+ * list and pre-fetching a random bundled image via <link rel="preload">,
+ * plus starting the custom-dir IDB read. All of this runs in parallel
+ * with the remaining JS parsing and Settings.load(), so by the time
+ * apply() is called the image is likely already fetched.
  */
 const Background = (() => {
   const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
   let imageList = [];
   let currentImage = null;
-  let currentBlobUrl = null;
 
   function isImage(filename) {
     const ext = filename.split('.').pop().toLowerCase();
@@ -56,25 +55,40 @@ const Background = (() => {
     });
   }
 
+  /* ── Image preloading via <link rel="preload"> ───── */
+  // Uses the browser's native preload cache. When CSS background-image
+  // later references the same URL, it's served from the preload cache
+  // — single network request, no duplicate loads.
+
+  function preloadImage(url) {
+    return new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      link.onload = () => { link.remove(); resolve(); };
+      link.onerror = () => { link.remove(); resolve(); };
+      document.head.appendChild(link);
+    });
+  }
+
   /* ── Speculative preload state ────────────────────── */
 
   let imageListPromise = null;
-  let speculativeResult = null;   // Promise<{ filename, blobUrl } | null>
+  let speculativeResult = null;   // Promise<{ filename, url } | null>
   let customDirPromise = null;    // Promise<string[]>
 
   function init() {
     // Start loading bundled image list immediately
     imageListPromise = loadImageList();
 
-    // Once the list is ready, speculatively fetch a random image as a blob
+    // Once the list is ready, speculatively preload a random image
     speculativeResult = imageListPromise.then((list) => {
       if (list.length === 0) return null;
       const idx = Math.floor(Math.random() * list.length);
       const filename = list[idx];
       const url = chrome.runtime.getURL('backgrounds/' + filename);
-      return fetch(url)
-        .then((res) => res.blob())
-        .then((blob) => ({ filename, blobUrl: URL.createObjectURL(blob) }));
+      return preloadImage(url).then(() => ({ filename, url }));
     }).catch(() => null);
 
     // Start loading custom-dir images from IDB
@@ -85,28 +99,19 @@ const Background = (() => {
 
   /* ── Apply helpers ───────────────────────────────── */
 
-  function setBg(blobOrDataUrl) {
-    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-    currentBlobUrl = blobOrDataUrl;
-    document.body.style.backgroundImage = `url("${blobOrDataUrl}")`;
-  }
-
-  async function fetchAndApplyImage(filename) {
+  async function applyImage(filename) {
     const url = chrome.runtime.getURL('backgrounds/' + filename);
-    const res = await fetch(url);
-    const blob = await res.blob();
-    setBg(URL.createObjectURL(blob));
+    await preloadImage(url);
+    document.body.style.backgroundImage = `url("${url}")`;
   }
 
   function applySolid(color) {
-    if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
     document.body.style.backgroundImage = 'none';
     document.body.style.backgroundColor = color || '#252629';
   }
 
   async function applyDataUrl(url) {
     // Data URLs are already in memory — just set CSS directly
-    if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
     document.body.style.backgroundImage = `url("${url}")`;
   }
 
@@ -161,21 +166,21 @@ const Background = (() => {
         return;
       }
 
-      // Use speculative preload if available
+      // Use speculative preload if available (already in browser cache)
       if (speculativeResult) {
         const preloaded = await speculativeResult;
         speculativeResult = null; // consume once
         if (preloaded && imageList.includes(preloaded.filename)) {
           currentImage = preloaded.filename;
-          setBg(preloaded.blobUrl);
+          document.body.style.backgroundImage = `url("${preloaded.url}")`;
           return;
         }
       }
 
-      // Fallback: fetch on demand
+      // Fallback: preload + apply on demand
       const idx = Math.floor(Math.random() * imageList.length);
       currentImage = imageList[idx];
-      await fetchAndApplyImage(currentImage);
+      await applyImage(currentImage);
       return;
     }
 
@@ -189,13 +194,13 @@ const Background = (() => {
       speculativeResult = null;
       if (preloaded && preloaded.filename === target) {
         currentImage = target;
-        setBg(preloaded.blobUrl);
+        document.body.style.backgroundImage = `url("${preloaded.url}")`;
         return;
       }
     }
 
     currentImage = target;
-    await fetchAndApplyImage(currentImage);
+    await applyImage(currentImage);
   }
 
   function getImageList() {
