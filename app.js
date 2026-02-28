@@ -17,11 +17,15 @@
   // Chrome's built-in new tab page (search bar + most-visited tiles).
   // chrome://new-tab-page/ is Chrome's own NTP — distinct from
   // chrome://newtab/ which is what extensions override, so no loop.
-  const { extensionEnabled = true } = await new Promise((resolve) =>
-    chrome.storage.local.get({ extensionEnabled: true }, resolve)
-  );
+  const { extensionEnabled = true, disabledRedirectUrl = '' } =
+    await new Promise((resolve) =>
+      chrome.storage.local.get(
+        { extensionEnabled: true, disabledRedirectUrl: '' },
+        resolve
+      )
+    );
   if (!extensionEnabled) {
-    location.replace('chrome://new-tab-page/');
+    location.replace(disabledRedirectUrl || 'chrome://new-tab-page/');
     return;
   }
 
