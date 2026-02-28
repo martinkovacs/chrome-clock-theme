@@ -18,7 +18,7 @@ const Settings = (() => {
     bgMode: 'auto',
     bgImage: '',
     bgCustomImage: '',
-    bgCustomDir: '',
+    bgCustomDirImages: [],
     bgColor: '#1a1a2e',
   };
 
@@ -51,6 +51,8 @@ const Settings = (() => {
   let pendingLocations = [];
   let pendingClockCities = [];
   let selectedBgImage = '';
+  let pendingCustomImage = '';
+  let pendingCustomDirImages = [];
   let onSaveCallback = null;
   let autoSaveTimer = null;
 
@@ -78,9 +80,10 @@ const Settings = (() => {
     document.getElementById('setting-date-format').value = settings.dateFormat;
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
-    document.getElementById('setting-bg-custom-image').value = settings.bgCustomImage || '';
-    document.getElementById('setting-bg-custom-dir').value = settings.bgCustomDir || '';
-    updateCustomImagePreview(settings.bgCustomImage || '');
+    pendingCustomImage = settings.bgCustomImage || '';
+    pendingCustomDirImages = settings.bgCustomDirImages || [];
+    updateCustomImagePreview(pendingCustomImage);
+    updateCustomDirInfo(pendingCustomDirImages);
     document.getElementById('setting-bg-color').value = settings.bgColor;
 
     // Weather locations
@@ -113,8 +116,8 @@ const Settings = (() => {
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
-      bgCustomImage: document.getElementById('setting-bg-custom-image').value.trim(),
-      bgCustomDir: document.getElementById('setting-bg-custom-dir').value.trim(),
+      bgCustomImage: pendingCustomImage,
+      bgCustomDirImages: pendingCustomDirImages,
       bgColor: document.getElementById('setting-bg-color').value,
     };
   }
@@ -130,15 +133,41 @@ const Settings = (() => {
     document.getElementById('bg-color-label').classList.toggle('hidden', mode !== 'solid');
   }
 
-  function updateCustomImagePreview(url) {
+  function updateCustomImagePreview(dataUrl) {
     const preview = document.getElementById('bg-custom-image-preview');
-    if (url) {
-      preview.src = url;
+    if (dataUrl) {
+      preview.src = dataUrl;
       preview.classList.add('visible');
       preview.onerror = () => { preview.classList.remove('visible'); };
     } else {
+      preview.src = '';
       preview.classList.remove('visible');
     }
+  }
+
+  function updateCustomDirInfo(images) {
+    const info = document.getElementById('bg-custom-dir-info');
+    if (images && images.length > 0) {
+      info.textContent = `${images.length} image${images.length === 1 ? '' : 's'} loaded from selected folder.`;
+      info.classList.remove('hidden');
+    } else {
+      info.classList.add('hidden');
+    }
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
+  function isImageFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    return IMAGE_EXTENSIONS.includes(ext);
   }
 
   function renderThumbs(images, current) {
@@ -330,9 +359,30 @@ const Settings = (() => {
       toggleBgSubPanels(e.target.value);
     });
 
-    // Custom image URL preview
-    document.getElementById('setting-bg-custom-image').addEventListener('input', (e) => {
-      updateCustomImagePreview(e.target.value.trim());
+    // Custom image file picker
+    document.getElementById('setting-bg-custom-image-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const dataUrl = await readFileAsDataURL(file);
+      if (dataUrl) {
+        pendingCustomImage = dataUrl;
+        updateCustomImagePreview(dataUrl);
+        autoSave();
+      }
+    });
+
+    // Custom directory file picker
+    document.getElementById('setting-bg-custom-dir-files').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files).filter(isImageFile);
+      if (files.length === 0) return;
+      const dataUrls = [];
+      for (const file of files) {
+        const dataUrl = await readFileAsDataURL(file);
+        if (dataUrl) dataUrls.push(dataUrl);
+      }
+      pendingCustomDirImages = dataUrls;
+      updateCustomDirInfo(dataUrls);
+      autoSave();
     });
 
     // Weather city search

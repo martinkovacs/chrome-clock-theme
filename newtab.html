@@ -149,8 +149,8 @@
           <select id="setting-bg-mode">
             <option value="auto">Automatic (random on refresh)</option>
             <option value="pick">Pick an image</option>
-            <option value="custom-image">Custom image (URL)</option>
-            <option value="custom-dir">Custom directory</option>
+            <option value="custom-image">Custom image</option>
+            <option value="custom-dir">Custom folder</option>
             <option value="solid">Solid color</option>
           </select>
         </label>
@@ -161,17 +161,17 @@
         </div>
         <div id="bg-custom-image-area" class="hidden">
           <label>
-            <span>Image URL</span>
-            <input type="text" id="setting-bg-custom-image" placeholder="https://example.com/image.jpg">
+            <span>Choose image</span>
+            <input type="file" id="setting-bg-custom-image-file" accept="image/*">
           </label>
           <img id="bg-custom-image-preview" alt="Preview">
         </div>
         <div id="bg-custom-dir-area" class="hidden">
           <label>
-            <span>Directory path</span>
-            <input type="text" id="setting-bg-custom-dir" placeholder="/path/to/images">
+            <span>Choose folder</span>
+            <input type="file" id="setting-bg-custom-dir-files" webkitdirectory>
           </label>
-          <p class="hint">Enter the full local path to a folder of images. A random image will be chosen on each refresh.</p>
+          <p id="bg-custom-dir-info" class="hint hidden"></p>
         </div>
         <label id="bg-color-label" class="hidden">
           <span>Background color</span>

@@ -524,6 +524,31 @@ fieldset input[type="checkbox"] {
   display: none;
 }
 
+fieldset input[type="file"] {
+  background: #2a2a3e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  font-size: 13px;
+  width: 220px;
+}
+
+fieldset input[type="file"]::file-selector-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #e0e0e0;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+fieldset input[type="file"]::file-selector-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 #bg-custom-image-preview {
   margin-top: 8px;
   max-width: 100%;
@@ -535,4 +560,8 @@ fieldset input[type="checkbox"] {
 
 #bg-custom-image-preview.visible {
   display: block;
+}
+
+#bg-custom-dir-info.hidden {
+  display: none;
 }

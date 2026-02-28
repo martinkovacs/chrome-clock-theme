@@ -3,7 +3,7 @@
   "name": "Custom Clock & Weather New Tab",
   "version": "1.0.0",
   "description": "A customizable new tab page with clock, date, and weather widget.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "unlimitedStorage"],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
