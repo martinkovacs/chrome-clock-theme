@@ -49,18 +49,48 @@ const Background = (() => {
     });
   }
 
+  /* ── Cache helpers ──────────────────────────────── */
+  // Cache the current background so the next new-tab can apply it
+  // synchronously from localStorage (short URLs) or via a fast
+  // IndexedDB read (data URLs that exceed localStorage limits).
+
+  function cacheBg(url) {
+    try {
+      if (url && url.startsWith('data:')) {
+        localStorage.setItem('cachedBg', 'idb');
+        localStorage.removeItem('cachedBgSolid');
+        ImageStore.save('cachedBg', url);
+      } else if (url) {
+        localStorage.setItem('cachedBg', url);
+        localStorage.removeItem('cachedBgSolid');
+      }
+    } catch (e) {}
+  }
+
+  function cacheSolid(color) {
+    try {
+      localStorage.removeItem('cachedBg');
+      localStorage.setItem('cachedBgSolid', color);
+    } catch (e) {}
+  }
+
+  /* ── Apply helpers ───────────────────────────────── */
+
   function applyImage(filename) {
     const url = chrome.runtime.getURL('backgrounds/' + filename);
     document.body.style.backgroundImage = `url("${url}")`;
+    cacheBg(url);
   }
 
   function applySolid(color) {
     document.body.style.backgroundImage = 'none';
     document.body.style.backgroundColor = color || '#252629';
+    cacheSolid(color || '#252629');
   }
 
   function applyUrl(url) {
     document.body.style.backgroundImage = `url("${url}")`;
+    cacheBg(url);
   }
 
   async function apply(settings) {

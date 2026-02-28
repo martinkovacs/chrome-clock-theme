@@ -7,6 +7,23 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="loading">
+  <script>
+    // Instantly apply cached background to eliminate flash on new tab open.
+    // For bundled images (short URLs), localStorage gives synchronous access.
+    // Data URLs (custom modes) are too large for localStorage and are handled
+    // by an early async read in app.js instead.
+    (function() {
+      try {
+        var bg = localStorage.getItem('cachedBg');
+        var solid = localStorage.getItem('cachedBgSolid');
+        if (bg && bg !== 'idb') {
+          document.body.style.backgroundImage = 'url("' + bg + '")';
+        } else if (solid) {
+          document.body.style.backgroundColor = solid;
+        }
+      } catch(e) {}
+    })();
+  </script>
   <!-- Background overlay for readability -->
   <div id="bg-overlay"></div>
 
