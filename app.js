@@ -7,8 +7,11 @@
   // Apply background
   await Background.apply(settings);
 
-  // Start clock
+  // Start clock (this sets the correct time and font before showing)
   Clock.start(settings);
+
+  // Reveal UI now that clock and background are ready
+  document.body.classList.remove('loading');
 
   // Fetch weather
   Weather.update(settings);

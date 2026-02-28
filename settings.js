@@ -19,7 +19,7 @@ const Settings = (() => {
     bgImage: '',
     bgCustomImage: '',
     bgCustomDirImages: [],
-    bgColor: '#1a1a2e',
+    bgColor: '#252629',
   };
 
   async function load() {

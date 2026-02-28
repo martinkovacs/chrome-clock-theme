@@ -56,7 +56,7 @@ const Background = (() => {
 
   function applySolid(color) {
     document.body.style.backgroundImage = 'none';
-    document.body.style.backgroundColor = color || '#1a1a2e';
+    document.body.style.backgroundColor = color || '#252629';
   }
 
   function applyUrl(url) {
