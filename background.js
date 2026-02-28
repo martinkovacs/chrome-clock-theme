@@ -163,23 +163,23 @@ const Background = (() => {
         return;
       }
 
-      // New tab: check for a pre-picked cached image
+      // New tab: use pre-picked cached image if valid, else pick random
       try {
         const marker = localStorage.getItem('cachedBg');
         if (marker === 'idb') {
           const cachedUrl = await ImageStore.load('cachedBg');
           if (cachedUrl && images.includes(cachedUrl)) {
             currentImage = cachedUrl;
-            // Already displayed by app.js early load — just pre-pick next
-            prepickNext(images, currentImage);
-            return;
           }
         }
       } catch (e) {}
 
-      // No valid cache: pick random
-      const idx = Math.floor(Math.random() * images.length);
-      currentImage = images[idx];
+      if (!currentImage || !images.includes(currentImage)) {
+        const idx = Math.floor(Math.random() * images.length);
+        currentImage = images[idx];
+      }
+
+      // Always apply (resolves instantly if app.js early load already set it)
       await applyUrl(currentImage);
       prepickNext(images, currentImage);
       return;
@@ -197,7 +197,7 @@ const Background = (() => {
         return;
       }
 
-      // New tab: check for a pre-picked cached image
+      // New tab: use pre-picked cached image if valid, else pick random
       try {
         const cached = localStorage.getItem('cachedBg');
         if (cached && cached !== 'idb') {
@@ -206,17 +206,17 @@ const Background = (() => {
             const filename = cached.slice(prefix.length);
             if (imageList.includes(filename)) {
               currentImage = filename;
-              // Already displayed by inline script — just pre-pick next
-              prepickNext(imageList, currentImage, (f) => chrome.runtime.getURL('backgrounds/' + f));
-              return;
             }
           }
         }
       } catch (e) {}
 
-      // No valid cache: pick random
-      const idx = Math.floor(Math.random() * imageList.length);
-      currentImage = imageList[idx];
+      if (!currentImage) {
+        const idx = Math.floor(Math.random() * imageList.length);
+        currentImage = imageList[idx];
+      }
+
+      // Always apply (resolves instantly if inline script already loaded it)
       await applyImage(currentImage);
       // Pre-pick next for future loads (fire-and-forget)
       prepickNext(imageList, currentImage, (f) => chrome.runtime.getURL('backgrounds/' + f));
