@@ -1,8 +1,13 @@
 /**
  * App entry point – lean critical path, then deferred loading.
  *
+ * Background.init() fires at background.js parse time — speculatively
+ * loads the image list + pre-fetches a random image in parallel with
+ * the remaining JS parsing and Settings.load().
+ *
  * Critical path (before first paint):
- *   Settings.load → Background.apply → Clock.start → reveal
+ *   Background.init() ─┐
+ *   Settings.load() ───┴→ Background.apply → Clock.start → reveal
  *
  * Deferred (after reveal):
  *   World clocks, weather.js (dynamic load), settings panel binding
