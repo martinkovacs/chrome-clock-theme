@@ -90,8 +90,18 @@ const Background = (() => {
 
   /* ── Apply helpers ───────────────────────────────── */
 
-  function applyImage(filename) {
+  function preloadImage(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = resolve;
+      img.onerror = resolve;
+      img.src = url;
+    });
+  }
+
+  async function applyImage(filename) {
     const url = chrome.runtime.getURL('backgrounds/' + filename);
+    await preloadImage(url);
     document.body.style.backgroundImage = `url("${url}")`;
     cacheBg(url);
   }
@@ -102,7 +112,8 @@ const Background = (() => {
     cacheSolid(color || '#252629');
   }
 
-  function applyUrl(url) {
+  async function applyUrl(url) {
+    await preloadImage(url);
     document.body.style.backgroundImage = `url("${url}")`;
     cacheBg(url);
   }
@@ -124,7 +135,7 @@ const Background = (() => {
     if (settings.bgMode === 'custom-image') {
       currentImage = null;
       if (settings.bgCustomImage) {
-        applyUrl(settings.bgCustomImage);
+        await applyUrl(settings.bgCustomImage);
       } else {
         applySolid(settings.bgColor);
       }
@@ -139,7 +150,7 @@ const Background = (() => {
           const idx = Math.floor(Math.random() * images.length);
           currentImage = images[idx];
         }
-        applyUrl(currentImage);
+        await applyUrl(currentImage);
       } else {
         currentImage = null;
         applySolid(settings.bgColor);
@@ -161,17 +172,17 @@ const Background = (() => {
       }
       const idx = Math.floor(Math.random() * imageList.length);
       currentImage = imageList[idx];
-      applyImage(currentImage);
+      await applyImage(currentImage);
       return;
     }
 
     // 'pick' mode
     if (settings.bgImage && imageList.includes(settings.bgImage)) {
       currentImage = settings.bgImage;
-      applyImage(currentImage);
+      await applyImage(currentImage);
     } else {
       currentImage = imageList[0];
-      applyImage(currentImage);
+      await applyImage(currentImage);
     }
   }
 
