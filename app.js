@@ -13,6 +13,13 @@
  *   World clocks, weather.js (dynamic load), settings panel binding
  */
 (async () => {
+  // If the user toggled the extension off via the popup, leave the
+  // page blank (body.loading hides all UI, dark grey bg shows).
+  const { extensionEnabled = true } = await new Promise((resolve) =>
+    chrome.storage.local.get({ extensionEnabled: true }, resolve)
+  );
+  if (!extensionEnabled) return;
+
   // Clean up stale background cache entries from previous versions
   try { localStorage.removeItem('cachedBg'); localStorage.removeItem('cachedBgSolid'); } catch (e) {}
 
