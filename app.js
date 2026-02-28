@@ -25,7 +25,10 @@
       )
     );
   if (!extensionEnabled) {
-    location.replace(disabledRedirectUrl || 'chrome://new-tab-page/');
+    const url = disabledRedirectUrl || 'chrome://new-tab-page/';
+    chrome.tabs.getCurrent((tab) => {
+      if (tab) chrome.tabs.update(tab.id, { url });
+    });
     return;
   }
 
