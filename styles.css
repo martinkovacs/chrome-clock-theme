@@ -319,7 +319,7 @@ fieldset input[type="number"] {
   color: #e0e0e0;
   padding: 6px 10px;
   font-size: 13px;
-  min-width: 180px;
+  width: 220px;
 }
 
 fieldset input[type="color"] {
@@ -357,7 +357,7 @@ fieldset input[type="checkbox"] {
 /* ── City search (shared by weather & world clocks) ── */
 .city-search-wrap {
   position: relative;
-  min-width: 180px;
+  width: 220px;
 }
 
 .city-search-wrap input[type="text"] {
