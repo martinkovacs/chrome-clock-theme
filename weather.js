@@ -36,7 +36,6 @@ const Weather = (() => {
   };
 
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-  const cache = new Map(); // key → { data, timestamp }
 
   function decodeWeather(code) {
     return WMO_CODES[code] || ['&#127777;&#65039;', 'Unknown'];
@@ -44,12 +43,18 @@ const Weather = (() => {
 
   async function fetchHourly(lat, lon, unit) {
     const tempUnit = unit === 'fahrenheit' ? 'fahrenheit' : 'celsius';
-    const cacheKey = `${lat},${lon},${tempUnit}`;
+    const cacheKey = `weather_${lat},${lon},${tempUnit}`;
 
-    const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return cached.data;
-    }
+    // Check persistent cache (survives across new tabs)
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        const { data, timestamp } = JSON.parse(raw);
+        if (Date.now() - timestamp < CACHE_TTL) {
+          return data;
+        }
+      }
+    } catch (e) {}
 
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -58,7 +63,10 @@ const Weather = (() => {
     if (!res.ok) throw new Error(`Weather API error: ${res.status}`);
     const data = await res.json();
 
-    cache.set(cacheKey, { data, timestamp: Date.now() });
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) {}
+
     return data;
   }
 
