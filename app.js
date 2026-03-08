@@ -21,10 +21,18 @@
     );
   if (!extensionEnabled) {
     const isBrave = navigator.brave && (await navigator.brave.isBrave());
-    const url = isBrave ? 'brave://newtab' : 'chrome://newtab';
-    chrome.tabs.getCurrent((tab) => {
-      if (tab) chrome.tabs.update(tab.id, { url });
-    });
+    if (isBrave) {
+      // Brave resolves brave://newtab to its own default page, no loop
+      chrome.tabs.getCurrent((tab) => {
+        if (tab) chrome.tabs.update(tab.id, { url: 'brave://newtab' });
+      });
+    } else {
+      // Chrome: can't redirect to chrome://newtab (it resolves back here).
+      // Show a clean blank page instead.
+      document.body.classList.remove('loading');
+      document.body.innerHTML = '';
+      document.body.style.background = '#202124';
+    }
     return;
   }
 
