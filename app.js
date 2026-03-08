@@ -28,6 +28,9 @@
     return;
   }
 
+  // Restore the real extension favicon (overrides the blank one in the HTML)
+  document.querySelector('link[rel="icon"]').href = chrome.runtime.getURL('icons/icon128.png');
+
   // Clean up stale background cache entries from previous versions
   try { localStorage.removeItem('cachedBg'); localStorage.removeItem('cachedBgSolid'); } catch (e) {}
 
