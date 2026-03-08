@@ -14,18 +14,14 @@
  */
 (async () => {
   // If the user toggled the extension off via the popup, redirect to
-  // Chrome's built-in new tab page (search bar + most-visited tiles).
-  // chrome://new-tab-page/ is Chrome's own NTP — distinct from
-  // chrome://newtab/ which is what extensions override, so no loop.
-  const { extensionEnabled = true, disabledRedirectUrl = '' } =
+  // the browser's native new tab page (brave://newtab or chrome://newtab).
+  const { extensionEnabled = true } =
     await new Promise((resolve) =>
-      chrome.storage.local.get(
-        { extensionEnabled: true, disabledRedirectUrl: '' },
-        resolve
-      )
+      chrome.storage.local.get({ extensionEnabled: true }, resolve)
     );
   if (!extensionEnabled) {
-    const url = disabledRedirectUrl || 'chrome://new-tab-page/';
+    const isBrave = navigator.brave && (await navigator.brave.isBrave());
+    const url = isBrave ? 'brave://newtab' : 'chrome://newtab';
     chrome.tabs.getCurrent((tab) => {
       if (tab) chrome.tabs.update(tab.id, { url });
     });
