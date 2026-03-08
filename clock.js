@@ -151,7 +151,7 @@ const Clock = (() => {
     intervalId = setInterval(() => {
       tick(settings);
       tickMiniClocks(settings);
-    }, 1000);
+    }, 100);
   }
 
   function startWorldClocks(settings) {
