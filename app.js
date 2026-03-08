@@ -20,19 +20,14 @@
       chrome.storage.local.get({ extensionEnabled: true }, resolve)
     );
   if (!extensionEnabled) {
+    // chrome://new-tab-page is Chrome's built-in new tab (search bar,
+    // shortcuts, etc.) and is NOT affected by extension overrides, so
+    // no redirect loop.  Brave uses brave://newtab which also works.
     const isBrave = navigator.brave && (await navigator.brave.isBrave());
-    if (isBrave) {
-      // Brave resolves brave://newtab to its own default page, no loop
-      chrome.tabs.getCurrent((tab) => {
-        if (tab) chrome.tabs.update(tab.id, { url: 'brave://newtab' });
-      });
-    } else {
-      // Chrome: can't redirect to chrome://newtab (it resolves back here).
-      // Show a clean blank page instead.
-      document.body.classList.remove('loading');
-      document.body.innerHTML = '';
-      document.body.style.background = '#202124';
-    }
+    const url = isBrave ? 'brave://newtab' : 'chrome://new-tab-page';
+    chrome.tabs.getCurrent((tab) => {
+      if (tab) chrome.tabs.update(tab.id, { url });
+    });
     return;
   }
 
