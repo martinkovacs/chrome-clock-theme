@@ -171,13 +171,7 @@ const Weather = (() => {
     container.innerHTML = '';
 
     const locations = settings.locations || [];
-    if (locations.length === 0) {
-      const msg = document.createElement('div');
-      msg.className = 'weather-location weather-empty';
-      msg.innerHTML = '<div class="weather-current-desc">Set location in settings</div>';
-      container.appendChild(msg);
-      return;
-    }
+    if (locations.length === 0) return;
 
     const unitLabel = settings.tempUnit === 'fahrenheit' ? 'F' : 'C';
 

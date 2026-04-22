@@ -12,8 +12,8 @@ const Settings = (() => {
     clockWeight: 300,
     clockColor: '#ffffff',
     dateFormat: 'long',
-    clockCities: [],   // [{ city, lat, lon, timezone }, ...] up to 3
-    locations: [],     // [{ city, lat, lon }, ...] up to 3
+    clockCities: [],   // [{ city, lat, lon, timezone }, ...] up to 5
+    locations: [],     // [{ city, lat, lon }, ...] up to 5
     tempUnit: 'celsius',
     bgMode: 'auto',
     bgImage: '',
@@ -242,7 +242,7 @@ const Settings = (() => {
     });
 
     const addArea = document.getElementById(addAreaId);
-    addArea.classList.toggle('hidden', items.length >= 3);
+    addArea.classList.toggle('hidden', items.length >= 5);
   }
 
   function renderLocationChips() {
@@ -399,7 +399,7 @@ const Settings = (() => {
 
     // Weather city search
     setupGenericCitySearch('setting-city-search', 'city-results', 'city-search-wrap', (r) => {
-      if (pendingLocations.length >= 3) return;
+      if (pendingLocations.length >= 5) return;
       pendingLocations.push({
         city: r.name || r.display_name.split(',')[0],
         lat: r.lat,
@@ -411,7 +411,7 @@ const Settings = (() => {
 
     // Clock city search (resolves timezone after selection)
     setupGenericCitySearch('setting-clock-city-search', 'clock-city-results', 'clock-city-search-wrap', async (r) => {
-      if (pendingClockCities.length >= 3) return;
+      if (pendingClockCities.length >= 5) return;
       const cityName = r.name || r.display_name.split(',')[0];
       // Add immediately with placeholder, then resolve timezone
       const entry = { city: cityName, lat: r.lat, lon: r.lon, timezone: null };
@@ -421,6 +421,22 @@ const Settings = (() => {
       const tz = await Weather.resolveTimezone(r.lat, r.lon);
       entry.timezone = tz || 'UTC';
       autoSave();
+    });
+
+    // Reset to defaults
+    document.getElementById('settings-reset').addEventListener('click', async () => {
+      await save({ ...DEFAULTS });
+      await ImageStore.save('customImage', null);
+      await ImageStore.save('customDirImages', []);
+      chrome.storage.local.remove(['bgCustomImage']);
+      pendingLocations = [];
+      pendingClockCities = [];
+      pendingCustomDirImages = [];
+      selectedBgImage = '';
+      populateUI({ ...DEFAULTS });
+      const images = Background.getImageList();
+      renderThumbs(images, '');
+      if (typeof onSaveCallback === 'function') onSaveCallback({ ...DEFAULTS });
     });
 
     // Auto-save on any input/change within the settings panel
