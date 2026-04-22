@@ -33,7 +33,7 @@ body {
 }
 
 body.settings-open {
-  padding-right: 458px;
+  padding-right: 480px;
 }
 
 #bg-overlay {
@@ -53,8 +53,8 @@ body.settings-open {
 }
 
 #clock {
-  font-size: 96px;
-  font-weight: 300;
+  font-size: 160px;
+  font-weight: 400;
   letter-spacing: 4px;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   line-height: 1.1;
@@ -82,7 +82,7 @@ body.settings-open {
 }
 
 body.settings-open #mini-clocks-container {
-  right: calc(28px + 458px);
+  right: calc(28px + 480px);
 }
 
 .mini-clock {
@@ -213,7 +213,7 @@ body.settings-open #mini-clocks-container {
 }
 
 body.settings-open #settings-btn {
-  right: calc(28px + 458px);
+  right: calc(28px + 480px);
 }
 
 #settings-btn:hover {
@@ -242,8 +242,8 @@ body.settings-open #settings-btn {
   background: #252629;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
-  padding: 28px 32px;
-  width: 458px;
+  padding: 20px 28px;
+  width: 480px;
   height: 100%;
   overflow-y: auto;
   color: #e0e0e0;
@@ -262,7 +262,7 @@ body.settings-open #settings-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .settings-header h2 {
@@ -291,8 +291,8 @@ body.settings-open #settings-btn {
 fieldset {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
 }
 
 legend {
@@ -326,7 +326,7 @@ fieldset input[type="number"] {
   color: #e0e0e0;
   padding: 6px 10px;
   font-size: 13px;
-  width: 220px;
+  width: 240px;
 }
 
 fieldset select {
@@ -344,12 +344,20 @@ fieldset input[type="color"] {
 
 fieldset input[type="range"] {
   flex: 1;
-  min-width: 100px;
+  min-width: 0;
+}
+
+.clock-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 240px;
+  flex-shrink: 0;
 }
 
 #setting-clock-size-num {
-  width: 60px;
-  min-width: 60px;
+  width: 72px;
+  min-width: 72px;
   text-align: center;
 }
 
@@ -368,7 +376,7 @@ fieldset input[type="checkbox"] {
 /* ── City search (shared by weather & world clocks) ── */
 .city-search-wrap {
   position: relative;
-  width: 220px;
+  width: 240px;
 }
 
 .city-search-wrap input[type="text"] {
@@ -542,7 +550,7 @@ fieldset input[type="file"] {
   color: #e0e0e0;
   padding: 6px 10px;
   font-size: 13px;
-  width: 220px;
+  width: 240px;
 }
 
 fieldset input[type="file"]::file-selector-button {

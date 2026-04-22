@@ -92,7 +92,7 @@ const Clock = (() => {
     const dateEl = document.getElementById('date');
     const fontFamily = resolveFont(settings);
     clockEl.style.fontFamily = fontFamily;
-    clockEl.style.fontWeight = settings.clockWeight || 300;
+    clockEl.style.fontWeight = settings.clockWeight || 400;
     clockEl.style.fontSize = settings.clockSize + 'px';
     clockEl.style.color = settings.clockColor;
     dateEl.style.color = settings.clockColor;
@@ -127,7 +127,7 @@ const Clock = (() => {
       timeEl.className = 'mini-clock-time';
       timeEl.dataset.timezone = city.timezone;
       timeEl.style.fontFamily = resolveFont(settings);
-      timeEl.style.fontWeight = settings.clockWeight || 300;
+      timeEl.style.fontWeight = settings.clockWeight || 400;
       timeEl.style.color = settings.clockColor;
 
       block.appendChild(cityEl);
