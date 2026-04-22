@@ -7,14 +7,20 @@
  *
  * On parse, init() fires immediately — speculatively loading the image
  * list and pre-fetching a random bundled image via <link rel="preload">,
- * plus starting the custom-dir IDB read. All of this runs in parallel
- * with the remaining JS parsing and Settings.load(), so by the time
- * apply() is called the image is likely already fetched.
+ * plus starting the custom-dir and custom-image IDB reads. All of this
+ * runs in parallel with the remaining JS parsing and Settings.load(),
+ * so by the time apply() is called the image is likely already fetched.
+ *
+ * Custom images are stored as Blobs in IndexedDB and displayed via
+ * URL.createObjectURL(), matching how the browser handles native file
+ * URLs — no base64 decoding overhead.
  */
 const Background = (() => {
   const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
   let imageList = [];
-  let currentImage = null;
+  let currentImage = null;      // filename for bundled images
+  let currentCustomBlob = null; // Blob reference for custom-dir within-session tracking
+  let currentObjectUrl = null;  // active blob:// URL — revoked when replaced
 
   function isImage(filename) {
     const ext = filename.split('.').pop().toLowerCase();
@@ -75,8 +81,9 @@ const Background = (() => {
   /* ── Speculative preload state ────────────────────── */
 
   let imageListPromise = null;
-  let speculativeResult = null;   // Promise<{ filename, url } | null>
-  let customDirPromise = null;    // Promise<string[]>
+  let speculativeResult = null;  // Promise<{ filename, url } | null>
+  let customDirPromise = null;   // Promise<Blob[]>
+  let customImagePromise = null; // Promise<Blob | null>
 
   function init() {
     // Start loading bundled image list immediately
@@ -91,9 +98,20 @@ const Background = (() => {
       return preloadImage(url).then(() => ({ filename, url }));
     }).catch(() => null);
 
-    // Start loading custom-dir images from IDB
+    // Start loading custom images from IDB in parallel
+    customImagePromise = ImageStore.load('customImage').catch(() => null);
+
     customDirPromise = ImageStore.load('customDirImages')
-      .then((images) => images || [])
+      .then((data) => {
+        if (!data || data.length === 0) return [];
+        // Migrate old format: array of data URL strings → Blobs
+        if (typeof data[0] === 'string') {
+          const blobs = data.map(dataUrlToBlob);
+          ImageStore.save('customDirImages', blobs);
+          return blobs;
+        }
+        return data;
+      })
       .catch(() => []);
   }
 
@@ -110,9 +128,19 @@ const Background = (() => {
     document.body.style.backgroundColor = color || '#252629';
   }
 
-  async function applyDataUrl(url) {
-    // Data URLs are already in memory — just set CSS directly
-    document.body.style.backgroundImage = `url("${url}")`;
+  function applyBlob(blob) {
+    if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = URL.createObjectURL(blob);
+    document.body.style.backgroundImage = `url("${currentObjectUrl}")`;
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const [header, b64] = dataUrl.split(',');
+    const mime = header.split(':')[1].split(';')[0];
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
   }
 
   async function apply(settings) {
@@ -127,8 +155,14 @@ const Background = (() => {
 
     if (settings.bgMode === 'custom-image') {
       currentImage = null;
-      if (settings.bgCustomImage) {
-        await applyDataUrl(settings.bgCustomImage);
+      const blob = await (customImagePromise || ImageStore.load('customImage').catch(() => null));
+      if (blob instanceof Blob) {
+        applyBlob(blob);
+      } else if (settings.bgCustomImage) {
+        // Migration: old data URL in chrome.storage → convert to Blob, save to IDB
+        const migrated = dataUrlToBlob(settings.bgCustomImage);
+        ImageStore.save('customImage', migrated);
+        applyBlob(migrated);
       } else {
         applySolid(settings.bgColor);
       }
@@ -136,21 +170,22 @@ const Background = (() => {
     }
 
     if (settings.bgMode === 'custom-dir') {
-      const images = customDirPromise ? await customDirPromise : ((await ImageStore.load('customDirImages')) || []);
-      if (images.length === 0) {
+      const blobs = customDirPromise ? await customDirPromise : ((await ImageStore.load('customDirImages')) || []);
+      if (blobs.length === 0) {
         currentImage = null;
+        currentCustomBlob = null;
         applySolid(settings.bgColor);
         return;
       }
 
       // Within-session re-apply (settings save): keep current image
-      if (currentImage && images.includes(currentImage)) {
+      if (currentCustomBlob && blobs.includes(currentCustomBlob)) {
         return;
       }
 
-      const idx = Math.floor(Math.random() * images.length);
-      currentImage = images[idx];
-      await applyDataUrl(currentImage);
+      const idx = Math.floor(Math.random() * blobs.length);
+      currentCustomBlob = blobs[idx];
+      applyBlob(currentCustomBlob);
       return;
     }
 

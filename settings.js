@@ -17,13 +17,14 @@ const Settings = (() => {
     tempUnit: 'celsius',
     bgMode: 'auto',
     bgImage: '',
-    bgCustomImage: '',
     bgColor: '#252629',
   };
 
   async function load() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(DEFAULTS, (data) => {
+      // Also fetch bgCustomImage for migration — background.js converts it
+      // to a Blob in IDB on first apply(), then it's no longer needed.
+      chrome.storage.local.get({ ...DEFAULTS, bgCustomImage: '' }, (data) => {
         const settings = { ...DEFAULTS, ...data };
 
         // Migrate old single-location format → locations array
@@ -62,8 +63,8 @@ const Settings = (() => {
   let pendingLocations = [];
   let pendingClockCities = [];
   let selectedBgImage = '';
-  let pendingCustomImage = '';
   let pendingCustomDirImages = [];
+  let previewObjectUrl = null; // blob:// URL for custom-image preview (revoked on replace)
   let onSaveCallback = null;
   let autoSaveTimer = null;
 
@@ -91,8 +92,16 @@ const Settings = (() => {
     document.getElementById('setting-date-format').value = settings.dateFormat;
     document.getElementById('setting-temp-unit').value = settings.tempUnit;
     document.getElementById('setting-bg-mode').value = settings.bgMode;
-    pendingCustomImage = settings.bgCustomImage || '';
-    updateCustomImagePreview(pendingCustomImage);
+    // Load custom-image preview from IDB; fall back to legacy data URL if not yet migrated
+    ImageStore.load('customImage').then((blob) => {
+      if (blob instanceof Blob) {
+        if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = URL.createObjectURL(blob);
+        updateCustomImagePreview(previewObjectUrl);
+      } else {
+        updateCustomImagePreview(settings.bgCustomImage || '');
+      }
+    });
     ImageStore.load('customDirImages').then((images) => {
       pendingCustomDirImages = images || [];
       updateCustomDirInfo(pendingCustomDirImages);
@@ -129,7 +138,6 @@ const Settings = (() => {
       tempUnit: document.getElementById('setting-temp-unit').value,
       bgMode: document.getElementById('setting-bg-mode').value,
       bgImage: selectedBgImage,
-      bgCustomImage: pendingCustomImage,
       bgColor: document.getElementById('setting-bg-color').value,
     };
   }
@@ -167,13 +175,8 @@ const Settings = (() => {
     }
   }
 
-  function readFileAsDataURL(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
+  function fileToBlob(file) {
+    return file.slice(0, file.size, file.type);
   }
 
   const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
@@ -371,30 +374,26 @@ const Settings = (() => {
       toggleBgSubPanels(e.target.value);
     });
 
-    // Custom image file picker
+    // Custom image file picker → store Blob in IndexedDB
     document.getElementById('setting-bg-custom-image-file').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const dataUrl = await readFileAsDataURL(file);
-      if (dataUrl) {
-        pendingCustomImage = dataUrl;
-        updateCustomImagePreview(dataUrl);
-        autoSave();
-      }
+      const blob = fileToBlob(file);
+      await ImageStore.save('customImage', blob);
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = URL.createObjectURL(blob);
+      updateCustomImagePreview(previewObjectUrl);
+      autoSave();
     });
 
-    // Custom directory file picker → store in IndexedDB
+    // Custom directory file picker → store Blobs in IndexedDB
     document.getElementById('setting-bg-custom-dir-files').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files).filter(isImageFile);
       if (files.length === 0) return;
-      const dataUrls = [];
-      for (const file of files) {
-        const dataUrl = await readFileAsDataURL(file);
-        if (dataUrl) dataUrls.push(dataUrl);
-      }
-      pendingCustomDirImages = dataUrls;
-      updateCustomDirInfo(dataUrls);
-      await ImageStore.save('customDirImages', dataUrls);
+      const blobs = files.map(fileToBlob);
+      pendingCustomDirImages = blobs;
+      updateCustomDirInfo(blobs);
+      await ImageStore.save('customDirImages', blobs);
       autoSave();
     });
 
